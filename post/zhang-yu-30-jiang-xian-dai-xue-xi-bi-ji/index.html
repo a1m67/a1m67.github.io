@@ -1,0 +1,310 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>张宇30讲线代学习笔记 | Gridea</title>
+<link rel="shortcut icon" href="https://a1m67.github.io/favicon.ico?v=1653475188339">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://a1m67.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="张宇30讲线代学习笔记 | Gridea - Atom Feed" href="https://a1m67.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="行列式
+行列式的性质
+
+性质1：行列互换其值不变，即|A|=|AT|
+行列式某行（列）元素全为零，行列式为零
+若行列式中某行（列）元素有公因子k(k≠0)，则可以提到外边去
+行列式中某行（列）元素均是两个元素之和，则可拆成两个行列式之和
+两..." />
+    <meta name="keywords" content="线性代数" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://a1m67.github.io">
+  <img class="avatar" src="https://a1m67.github.io/images/avatar.png?v=1653475188339" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              张宇30讲线代学习笔记
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-05-25
+              </span>
+              <span>
+                4 min read
+              </span>
+              
+                <a href="https://a1m67.github.io/tag/KbwHwhYsm/" class="post-tag">
+                  # 线性代数
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content" v-pre>
+                <h1 id="行列式">行列式</h1>
+<h2 id="行列式的性质">行列式的性质</h2>
+<ul>
+<li>性质1：行列互换其值不变，即|<strong>A</strong>|=|<strong>A</strong><sup>T</sup>|</li>
+<li>行列式某行（列）元素全为零，行列式为零</li>
+<li>若行列式中某行（列）元素有公因子k(k≠0)，则可以提到外边去</li>
+<li>行列式中某行（列）元素均是两个元素之和，则可拆成两个行列式之和</li>
+<li>两行互换，行列式的值反号</li>
+<li>两行成比例，行列式为零</li>
+<li>行列式某行（列）的k倍加到另一行（列），行列式的值不变（<strong>倍加</strong>）</li>
+</ul>
+<h2 id="余子式">余子式</h2>
+<ul>
+<li>余子式 M<sub>ij</sub>
+<ul>
+<li>代数余子式A<sub>ij</sub>=(-1)<sup>i+j</sup>M<sub>ij</sub></li>
+<li>|A|=a<sub>i1</sub>A<sub>i1</sub>  +  a<sub>i2</sub>A<sub>i2</sub>  +···+ a<sub>in</sub>A<sub>in</sub>（或按列展开）</li>
+</ul>
+</li>
+<li><strong>行列式某行分别乘以另一行元素的代数余子式求和结果为0</strong>（回头需要看一下证明）</li>
+</ul>
+<h2 id="几个重要的行列式">几个重要的行列式</h2>
+<p>**1.**主对角线行列式（上下三角行列式）|<strong>A</strong>|=∏a<sub>ii</sub></p>
+<p>**2.**副对角线行列式 |<strong>A</strong>|=(-1)<sup>n(n-1)/2</sup>a<sub>1n</sub>a<sub>2n-1</sub>···a<sub>n1</sub></p>
+<p><strong>3</strong>.拉普拉斯展开式</p>
+<p>**4.**范德蒙德行列式</p>
+<figure data-type="image" tabindex="1"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516195453306.png" alt="image-20220516195453306" loading="lazy"></figure>
+<h1 id="矩阵">矩阵</h1>
+<h2 id="一-矩阵的本质">一、矩阵的本质</h2>
+<p>**重要观点 1 ** 矩阵也是有若干行(列)向量拼成的</p>
+<p>**重要观点 2 **矩阵不能运算，但是其若干行（列）向量之间可能存在某种关系(线性相关、线性无关)</p>
+<h2 id="二-矩阵定义及其基本运算">二、矩阵定义及其基本运算</h2>
+<p>1.矩阵的定义：由m*n个数排成的m行n列的矩形表格</p>
+<p><strong>2.矩阵的基本运算</strong></p>
+<p>**(1)**<strong>相等</strong> 两个矩阵的行数列数相等并且对应位置的元素相等</p>
+<p>**(2)**<strong>加法</strong> 两个同型矩阵对应位置元素相加</p>
+<p><strong>(3)**<strong>矩阵数乘</strong> 矩阵</strong>A**的每一个元素都乘以k</p>
+<p><strong>矩阵的线性运算：</strong></p>
+<p>①<strong>交换律</strong> 	<strong>A+B=B+A</strong></p>
+<p>②<strong>结合律</strong>     <strong>(A+B)+C=A+(B+C)</strong></p>
+<p>③<strong>分配律</strong>     k(<strong>A+B</strong>)=k<strong>A</strong>+k<strong>B</strong>,(k+l)<strong>A</strong>=k<strong>A</strong>+l<strong>A</strong></p>
+<p>④<strong>数和矩阵相乘的结合律</strong>     k(l<strong>A</strong>)=l(k<strong>A</strong>)</p>
+<p>【<strong>注</strong>】</p>
+<p>（1） |k<strong>A</strong>| = k<sup>n</sup> <strong>A</strong>≠k<strong>A</strong></p>
+<p>（2） 一般的，<strong>|A+B|<strong>不等于</strong>|A|+|B|</strong></p>
+<p>（3）<strong>A</strong>≠<strong>O</strong>     !⇒     |<strong>A</strong>|≠0</p>
+<p>（4）<strong>A≠B</strong>     !⇒     |<strong>A</strong>|≠|<strong>B</strong>|</p>
+<p><strong>(4)矩阵乘法</strong></p>
+<p><strong>矩阵乘法运算规律:</strong></p>
+<p>①<strong>结合律</strong></p>
+<p>②<strong>分配律</strong></p>
+<p>③<strong>数乘与矩阵乘积的结合律</strong></p>
+<p>(5)转置矩阵<strong>A<sup>T</sup></strong></p>
+<p>(6)向量的内积与正交</p>
+<ul>
+<li>正交：<strong>α<sup>T</sup>β</strong>=0，称向量<strong>α，β</strong>是正交向量</li>
+<li>模       ||α||</li>
+<li><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516202303468.png" alt="image-20220516202303468" loading="lazy"></li>
+</ul>
+<p>(7)施密特正交化</p>
+<figure data-type="image" tabindex="3"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516202346423.png" alt="image-20220516202346423" loading="lazy"></figure>
+<p>(8)矩阵的幂</p>
+<p>​	A<sup>m</sup>=AAAAAA···AAA（共m个）称为A的m次幂</p>
+<p>(9)方阵乘积的行列式 |<strong>AB</strong>|=|<strong>A</strong>||<strong>B</strong>|</p>
+<p>【注】几种重要的矩阵</p>
+<figure data-type="image" tabindex="4"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516202631231.png" alt="image-20220516202631231" loading="lazy"></figure>
+<p>（9）<strong>分块矩阵</strong></p>
+<pre><code>**分块矩阵的基本运算:**
+</code></pre>
+<p>​	<img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516202836693.png" alt="image-20220516202836693" loading="lazy"></p>
+<h2 id="三-矩阵的逆">三、矩阵的逆</h2>
+<p>1.逆矩阵的定义</p>
+<p>(1)<strong>定义</strong>   <strong>A,B</strong>是”阶方阵,<strong>E</strong>是”阶单位矩阵，若<strong>AB=BA=E,<strong>则称</strong>A</strong>是可逆矩阵，并称<strong>B</strong>是<strong>A</strong>的逆</p>
+<p>矩阵，且逆矩阵是唯一的，记作<strong>A<sup>-1</sup></strong></p>
+<p>(2)矩阵可逆的<strong>充要条件</strong>是|<strong>A</strong>|≠0. 当|<strong>A</strong>|≠0时,<strong>A</strong>可逆，且</p>
+<figure data-type="image" tabindex="5"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516203209205.png" alt="image-20220516203209205" loading="lazy"></figure>
+<p>2.性质和重要公式</p>
+<p>若A,B是同阶可逆矩阵,则</p>
+<p>(1)(A<sup>-1</sup>)<sup>-1</sup>=A;</p>
+<p>(2)若k≠0，则(k<strong>A</strong>)<sup>-1</sup>=1/k<strong>A</strong><sup>-1</sup></p>
+<p>(3)<strong>AB</strong>也可逆</p>
+<p>(4)A<sup>T</sup>也可逆,且(A<sup>T</sup>)<sup>-1</sup>=(A<sup>-1</sup>)<sup>T</sup></p>
+<p><strong>(5)|A<sup>-1</sup>|=|A|<sup>-1</sup></strong></p>
+<p><strong>3.定义法求逆矩阵</strong></p>
+<p>（<strong>方法三</strong>）</p>
+<figure data-type="image" tabindex="6"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516203856761.png" alt="image-20220516203856761" loading="lazy"></figure>
+<h2 id="四-伴随矩阵">四、伴随矩阵</h2>
+<figure data-type="image" tabindex="7"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516203940799.png" alt="image-20220516203940799" loading="lazy"></figure>
+<p><strong>最重要的公式</strong></p>
+<p>​				<strong>AA<sup>*</sup>=A<sup>*</sup>A=|A|E</strong></p>
+<ol>
+<li><strong>伴随矩阵的性质和公式</strong>  <strong>★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★</strong>★</li>
+</ol>
+<p>​		<img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516204144314.png" alt="image-20220516204144314" loading="lazy"></p>
+<ol start="3">
+<li>
+<p><strong>伴随矩阵求逆矩阵</strong></p>
+<p>若|<strong>A</strong>|≠0，则<strong>A</strong>可逆，且<strong>A<sup>-1</sup>=1/|A|A<sup>*</sup></strong></p>
+</li>
+</ol>
+<h2 id="五-初等变换与初等矩阵">五、初等变换与初等矩阵</h2>
+<p>1.初等变换</p>
+<ul>
+<li>倍乘</li>
+<li>互换</li>
+<li>倍加</li>
+</ul>
+<p>2.初等矩阵</p>
+<p>由单位阵进行<strong>一次初等变换</strong>得到的矩阵叫初等矩阵</p>
+<p>3.性质与公式</p>
+<p>(1)初等矩阵的转置还是初等矩阵</p>
+<figure data-type="image" tabindex="8"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516204531578.png" alt="image-20220516204531578" loading="lazy"></figure>
+<p>(3)左行右列</p>
+<p>4.用初等变换求逆矩阵</p>
+<figure data-type="image" tabindex="9"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516204841953.png" alt="image-20220516204841953" loading="lazy"></figure>
+<h2 id="六-等价矩阵和矩阵的等价标准形回头再看看看书没看懂">六、等价矩阵和矩阵的等价标准形（回头再看看，看书没看懂）</h2>
+<h2 id="七-矩阵的秩">七、矩阵的秩</h2>
+<p>1.r(A<sub>n*n</sub>)=n     ⟺    |A| ≠0  ⟺   A可逆</p>
+<p>2.初等变换不改变矩阵的秩</p>
+<figure data-type="image" tabindex="10"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516205304919.png" alt="image-20220516205304919" loading="lazy"></figure>
+<p>3.一些重要的式子</p>
+<figure data-type="image" tabindex="11"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516205412783.png" alt="image-20220516205412783" loading="lazy"></figure>
+<h1 id="向量组">向量组</h1>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#%E8%A1%8C%E5%88%97%E5%BC%8F">行列式</a>
+<ul>
+<li><a href="#%E8%A1%8C%E5%88%97%E5%BC%8F%E7%9A%84%E6%80%A7%E8%B4%A8">行列式的性质</a></li>
+<li><a href="#%E4%BD%99%E5%AD%90%E5%BC%8F">余子式</a></li>
+<li><a href="#%E5%87%A0%E4%B8%AA%E9%87%8D%E8%A6%81%E7%9A%84%E8%A1%8C%E5%88%97%E5%BC%8F">几个重要的行列式</a></li>
+</ul>
+</li>
+<li><a href="#%E7%9F%A9%E9%98%B5">矩阵</a>
+<ul>
+<li><a href="#%E4%B8%80-%E7%9F%A9%E9%98%B5%E7%9A%84%E6%9C%AC%E8%B4%A8">一、矩阵的本质</a></li>
+<li><a href="#%E4%BA%8C-%E7%9F%A9%E9%98%B5%E5%AE%9A%E4%B9%89%E5%8F%8A%E5%85%B6%E5%9F%BA%E6%9C%AC%E8%BF%90%E7%AE%97">二、矩阵定义及其基本运算</a></li>
+<li><a href="#%E4%B8%89-%E7%9F%A9%E9%98%B5%E7%9A%84%E9%80%86">三、矩阵的逆</a></li>
+<li><a href="#%E5%9B%9B-%E4%BC%B4%E9%9A%8F%E7%9F%A9%E9%98%B5">四、伴随矩阵</a></li>
+<li><a href="#%E4%BA%94-%E5%88%9D%E7%AD%89%E5%8F%98%E6%8D%A2%E4%B8%8E%E5%88%9D%E7%AD%89%E7%9F%A9%E9%98%B5">五、初等变换与初等矩阵</a></li>
+<li><a href="#%E5%85%AD-%E7%AD%89%E4%BB%B7%E7%9F%A9%E9%98%B5%E5%92%8C%E7%9F%A9%E9%98%B5%E7%9A%84%E7%AD%89%E4%BB%B7%E6%A0%87%E5%87%86%E5%BD%A2%E5%9B%9E%E5%A4%B4%E5%86%8D%E7%9C%8B%E7%9C%8B%E7%9C%8B%E4%B9%A6%E6%B2%A1%E7%9C%8B%E6%87%82">六、等价矩阵和矩阵的等价标准形（回头再看看，看书没看懂）</a></li>
+<li><a href="#%E4%B8%83-%E7%9F%A9%E9%98%B5%E7%9A%84%E7%A7%A9">七、矩阵的秩</a></li>
+</ul>
+</li>
+<li><a href="#%E5%90%91%E9%87%8F%E7%BB%84">向量组</a></li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://a1m67.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

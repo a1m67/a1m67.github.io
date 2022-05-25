@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://a1m67.github.io</id>
+    <title>Gridea</title>
+    <updated>2022-05-25T10:40:26.295Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://a1m67.github.io"/>
+    <link rel="self" href="https://a1m67.github.io/atom.xml"/>
+    <subtitle>温故而知新</subtitle>
+    <logo>https://a1m67.github.io/images/avatar.png</logo>
+    <icon>https://a1m67.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2022, Gridea</rights>
+    <entry>
+        <title type="html"><![CDATA[张宇30讲线代学习笔记]]></title>
+        <id>https://a1m67.github.io/post/zhang-yu-30-jiang-xian-dai-xue-xi-bi-ji/</id>
+        <link href="https://a1m67.github.io/post/zhang-yu-30-jiang-xian-dai-xue-xi-bi-ji/">
+        </link>
+        <updated>2022-05-25T02:54:16.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="行列式">行列式</h1>
+<h2 id="行列式的性质">行列式的性质</h2>
+<ul>
+<li>性质1：行列互换其值不变，即|<strong>A</strong>|=|<strong>A</strong><sup>T</sup>|</li>
+<li>行列式某行（列）元素全为零，行列式为零</li>
+<li>若行列式中某行（列）元素有公因子k(k≠0)，则可以提到外边去</li>
+<li>行列式中某行（列）元素均是两个元素之和，则可拆成两个行列式之和</li>
+<li>两行互换，行列式的值反号</li>
+<li>两行成比例，行列式为零</li>
+<li>行列式某行（列）的k倍加到另一行（列），行列式的值不变（<strong>倍加</strong>）</li>
+</ul>
+<h2 id="余子式">余子式</h2>
+<ul>
+<li>余子式 M<sub>ij</sub>
+<ul>
+<li>代数余子式A<sub>ij</sub>=(-1)<sup>i+j</sup>M<sub>ij</sub></li>
+<li>|A|=a<sub>i1</sub>A<sub>i1</sub>  +  a<sub>i2</sub>A<sub>i2</sub>  +···+ a<sub>in</sub>A<sub>in</sub>（或按列展开）</li>
+</ul>
+</li>
+<li><strong>行列式某行分别乘以另一行元素的代数余子式求和结果为0</strong>（回头需要看一下证明）</li>
+</ul>
+<h2 id="几个重要的行列式">几个重要的行列式</h2>
+<p>**1.**主对角线行列式（上下三角行列式）|<strong>A</strong>|=∏a<sub>ii</sub></p>
+<p>**2.**副对角线行列式 |<strong>A</strong>|=(-1)<sup>n(n-1)/2</sup>a<sub>1n</sub>a<sub>2n-1</sub>···a<sub>n1</sub></p>
+<p><strong>3</strong>.拉普拉斯展开式</p>
+<p>**4.**范德蒙德行列式</p>
+<figure data-type="image" tabindex="1"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516195453306.png" alt="image-20220516195453306" loading="lazy"></figure>
+<h1 id="矩阵">矩阵</h1>
+<h2 id="一-矩阵的本质">一、矩阵的本质</h2>
+<p>**重要观点 1 ** 矩阵也是有若干行(列)向量拼成的</p>
+<p>**重要观点 2 **矩阵不能运算，但是其若干行（列）向量之间可能存在某种关系(线性相关、线性无关)</p>
+<h2 id="二-矩阵定义及其基本运算">二、矩阵定义及其基本运算</h2>
+<p>1.矩阵的定义：由m*n个数排成的m行n列的矩形表格</p>
+<p><strong>2.矩阵的基本运算</strong></p>
+<p>**(1)**<strong>相等</strong> 两个矩阵的行数列数相等并且对应位置的元素相等</p>
+<p>**(2)**<strong>加法</strong> 两个同型矩阵对应位置元素相加</p>
+<p><strong>(3)**<strong>矩阵数乘</strong> 矩阵</strong>A**的每一个元素都乘以k</p>
+<p><strong>矩阵的线性运算：</strong></p>
+<p>①<strong>交换律</strong> 	<strong>A+B=B+A</strong></p>
+<p>②<strong>结合律</strong>     <strong>(A+B)+C=A+(B+C)</strong></p>
+<p>③<strong>分配律</strong>     k(<strong>A+B</strong>)=k<strong>A</strong>+k<strong>B</strong>,(k+l)<strong>A</strong>=k<strong>A</strong>+l<strong>A</strong></p>
+<p>④<strong>数和矩阵相乘的结合律</strong>     k(l<strong>A</strong>)=l(k<strong>A</strong>)</p>
+<p>【<strong>注</strong>】</p>
+<p>（1） |k<strong>A</strong>| = k<sup>n</sup> <strong>A</strong>≠k<strong>A</strong></p>
+<p>（2） 一般的，<strong>|A+B|<strong>不等于</strong>|A|+|B|</strong></p>
+<p>（3）<strong>A</strong>≠<strong>O</strong>     !⇒     |<strong>A</strong>|≠0</p>
+<p>（4）<strong>A≠B</strong>     !⇒     |<strong>A</strong>|≠|<strong>B</strong>|</p>
+<p><strong>(4)矩阵乘法</strong></p>
+<p><strong>矩阵乘法运算规律:</strong></p>
+<p>①<strong>结合律</strong></p>
+<p>②<strong>分配律</strong></p>
+<p>③<strong>数乘与矩阵乘积的结合律</strong></p>
+<p>(5)转置矩阵<strong>A<sup>T</sup></strong></p>
+<p>(6)向量的内积与正交</p>
+<ul>
+<li>正交：<strong>α<sup>T</sup>β</strong>=0，称向量<strong>α，β</strong>是正交向量</li>
+<li>模       ||α||</li>
+<li><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516202303468.png" alt="image-20220516202303468" loading="lazy"></li>
+</ul>
+<p>(7)施密特正交化</p>
+<figure data-type="image" tabindex="3"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516202346423.png" alt="image-20220516202346423" loading="lazy"></figure>
+<p>(8)矩阵的幂</p>
+<p>​	A<sup>m</sup>=AAAAAA···AAA（共m个）称为A的m次幂</p>
+<p>(9)方阵乘积的行列式 |<strong>AB</strong>|=|<strong>A</strong>||<strong>B</strong>|</p>
+<p>【注】几种重要的矩阵</p>
+<figure data-type="image" tabindex="4"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516202631231.png" alt="image-20220516202631231" loading="lazy"></figure>
+<p>（9）<strong>分块矩阵</strong></p>
+<pre><code>**分块矩阵的基本运算:**
+</code></pre>
+<p>​	<img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516202836693.png" alt="image-20220516202836693" loading="lazy"></p>
+<h2 id="三-矩阵的逆">三、矩阵的逆</h2>
+<p>1.逆矩阵的定义</p>
+<p>(1)<strong>定义</strong>   <strong>A,B</strong>是”阶方阵,<strong>E</strong>是”阶单位矩阵，若<strong>AB=BA=E,<strong>则称</strong>A</strong>是可逆矩阵，并称<strong>B</strong>是<strong>A</strong>的逆</p>
+<p>矩阵，且逆矩阵是唯一的，记作<strong>A<sup>-1</sup></strong></p>
+<p>(2)矩阵可逆的<strong>充要条件</strong>是|<strong>A</strong>|≠0. 当|<strong>A</strong>|≠0时,<strong>A</strong>可逆，且</p>
+<figure data-type="image" tabindex="5"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516203209205.png" alt="image-20220516203209205" loading="lazy"></figure>
+<p>2.性质和重要公式</p>
+<p>若A,B是同阶可逆矩阵,则</p>
+<p>(1)(A<sup>-1</sup>)<sup>-1</sup>=A;</p>
+<p>(2)若k≠0，则(k<strong>A</strong>)<sup>-1</sup>=1/k<strong>A</strong><sup>-1</sup></p>
+<p>(3)<strong>AB</strong>也可逆</p>
+<p>(4)A<sup>T</sup>也可逆,且(A<sup>T</sup>)<sup>-1</sup>=(A<sup>-1</sup>)<sup>T</sup></p>
+<p><strong>(5)|A<sup>-1</sup>|=|A|<sup>-1</sup></strong></p>
+<p><strong>3.定义法求逆矩阵</strong></p>
+<p>（<strong>方法三</strong>）</p>
+<figure data-type="image" tabindex="6"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516203856761.png" alt="image-20220516203856761" loading="lazy"></figure>
+<h2 id="四-伴随矩阵">四、伴随矩阵</h2>
+<figure data-type="image" tabindex="7"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516203940799.png" alt="image-20220516203940799" loading="lazy"></figure>
+<p><strong>最重要的公式</strong></p>
+<p>​				<strong>AA<sup>*</sup>=A<sup>*</sup>A=|A|E</strong></p>
+<ol>
+<li><strong>伴随矩阵的性质和公式</strong>  <strong>★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★</strong>★</li>
+</ol>
+<p>​		<img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516204144314.png" alt="image-20220516204144314" loading="lazy"></p>
+<ol start="3">
+<li>
+<p><strong>伴随矩阵求逆矩阵</strong></p>
+<p>若|<strong>A</strong>|≠0，则<strong>A</strong>可逆，且<strong>A<sup>-1</sup>=1/|A|A<sup>*</sup></strong></p>
+</li>
+</ol>
+<h2 id="五-初等变换与初等矩阵">五、初等变换与初等矩阵</h2>
+<p>1.初等变换</p>
+<ul>
+<li>倍乘</li>
+<li>互换</li>
+<li>倍加</li>
+</ul>
+<p>2.初等矩阵</p>
+<p>由单位阵进行<strong>一次初等变换</strong>得到的矩阵叫初等矩阵</p>
+<p>3.性质与公式</p>
+<p>(1)初等矩阵的转置还是初等矩阵</p>
+<figure data-type="image" tabindex="8"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516204531578.png" alt="image-20220516204531578" loading="lazy"></figure>
+<p>(3)左行右列</p>
+<p>4.用初等变换求逆矩阵</p>
+<figure data-type="image" tabindex="9"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516204841953.png" alt="image-20220516204841953" loading="lazy"></figure>
+<h2 id="六-等价矩阵和矩阵的等价标准形回头再看看看书没看懂">六、等价矩阵和矩阵的等价标准形（回头再看看，看书没看懂）</h2>
+<h2 id="七-矩阵的秩">七、矩阵的秩</h2>
+<p>1.r(A<sub>n*n</sub>)=n     ⟺    |A| ≠0  ⟺   A可逆</p>
+<p>2.初等变换不改变矩阵的秩</p>
+<figure data-type="image" tabindex="10"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516205304919.png" alt="image-20220516205304919" loading="lazy"></figure>
+<p>3.一些重要的式子</p>
+<figure data-type="image" tabindex="11"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20220516205412783.png" alt="image-20220516205412783" loading="lazy"></figure>
+<h1 id="向量组">向量组</h1>
+]]></content>
+    </entry>
+</feed>
