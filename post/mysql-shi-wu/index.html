@@ -1,0 +1,280 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MySQL事务 | Gridea</title>
+<link rel="shortcut icon" href="https://a1m67.github.io/favicon.ico?v=1724240269600">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://a1m67.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="MySQL事务 | Gridea - Atom Feed" href="https://a1m67.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="事务隔离级别是怎么实现的
+事务的特性
+
+A（Atomicity原子性，通过undolog保证）：一个事务中的所有操作，要么全部完成，要么全部不完成
+C （Consistency一致性，最终目的）：是指事务操作前和操作后，数据满足完整性约束，..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://a1m67.github.io">
+  <img class="avatar" src="https://a1m67.github.io/images/avatar.png?v=1724240269600" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              MySQL事务
+            </h2>
+            <div class="post-info">
+              <span>
+                2024-08-12
+              </span>
+              <span>
+                7 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content" v-pre>
+                <h1 id="事务隔离级别是怎么实现的">事务隔离级别是怎么实现的</h1>
+<h2 id="事务的特性">事务的特性</h2>
+<ul>
+<li>A（<strong>Atomicity</strong>原子性，通过undolog保证）：一个事务中的所有操作，要么全部完成，要么全部不完成</li>
+<li>C （<strong>Consistency</strong>一致性，最终目的）：是指事务操作前和操作后，数据满足完整性约束，数据库保持一致性状态。比如，用户 A 和用户 B 在银行分别有 800 元和 600 元，总共 1400 元，用户 A 给用户 B 转账 200 元，分为两个步骤，从 A 的账户扣除 200 元和对 B 的账户增加 200 元。一致性就是要求上述步骤操作后，最后的结果是用户 A 还有 600 元，用户 B 有 800 元，总共 1400 元，而不会出现用户 A 扣除了 200 元，但用户 B 未增加的情况（该情况，用户 A 和 B 均为 600 元，总共 1200 元）。</li>
+<li>I （<strong>Isolation</strong>隔离性 ，通过<strong>MVCC</strong>保证）：数据库允许多个并发事务同时对其数据进行读写和修改的能力，隔离性可以防止多个事务并发执行时由于交叉执行而导致数据的不一致</li>
+<li>D （<strong>Durability</strong>持久性 通过<strong>redolog</strong>保证）：事务处理结束后，对数据的修改就是永久的，即便系统故障也不会丢失。</li>
+<li>同过AID保证C</li>
+</ul>
+<h2 id="并行引发的问题">并行引发的问题</h2>
+<ul>
+<li>脏读：<strong>如果一个事务「读到」了另一个「未提交事务修改过的数据」，就意味着发生了「脏读」现象。B读到了A修改后的数据，但是A修改的数据回滚了</strong>，也就是读到了过期数据。</li>
+<li>不可重复读：**在一个事务内多次读取同一个数据，如果出现前后两次读到的数据不一样的情况，就意味着发生了「不可重复读」现象。**也就是在前后两次读的过程中有其他事务修改了数据</li>
+<li>幻读：<strong>在一个事务内多次查询某个符合查询条件的「记录数量」，如果出现前后两次查询到的记录数量不一样的情况，就意味着发生了「幻读」现象。</strong>，也就是在前后读取的过程中有其他事务添加或者修改了记录数量</li>
+<li>严重程度：脏读 &gt; 不可重复度 &gt; 幻读</li>
+</ul>
+<h2 id="事务隔离级别">事务隔离级别</h2>
+<ul>
+<li>读未提交：一个事务变更完不管是否提交，<strong>其他事务都能看到他的变更</strong>。脏读、不可重复读、幻读。</li>
+<li>读已提交：一个事务提交完后，其他事务才能看到他的变更。不可重复读、幻读。</li>
+<li>可重复读：一个事务看到的数据跟这个事务启动时看到的数据始终保持一致。InnoDB默认隔离级别。幻读</li>
+<li>串行化：对记录加锁，多个事务写的时候出现读写重读，后续的事务必须等待前边的事务完成后才能执行。</li>
+<li>可重复读级别解决幻读的两种方案：
+<ul>
+<li>针对快照读（普通select），通过MVCC</li>
+<li>针对当前读（select ... for update），通过next-key lock（记录锁+间隙锁）。执行select ... for update，如果其他事务在next-key lock的范围内插入数据，那么插入数据会被阻塞无法插入。</li>
+</ul>
+</li>
+<li>四种隔离级别实现方式
+<ul>
+<li>读未提交，直接读取最新数据</li>
+<li>串行化，通过加读写锁避免并行访问</li>
+<li>读已提交：通过read view，不过创建快照是在每个语句执行前</li>
+<li>可重复读：通过read view，不过创建快照是在启动事务时。</li>
+</ul>
+</li>
+</ul>
+<h2 id="read-view在mvcc中的工作原理">Read View在MVCC中的工作原理</h2>
+<h3 id="read-view中的四个重要字段">Read View中的四个重要字段：</h3>
+<p>​	<img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/ImageHost4@main/mysql/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/readview%E7%BB%93%E6%9E%84.drawio.png" alt="img" loading="lazy"></p>
+<ul>
+<li>
+<p>m_ids：创建Read View时，当前在数据库中活跃且未提交（启动了还没提交的事务列表）的<strong>事务列表</strong></p>
+</li>
+<li>
+<p>min_trx_id：创建Read View时,活跃事务中id最小的事务</p>
+</li>
+<li>
+<p>max_trx_id：<strong>创建 Read View 时全局事务中最大的事务 id 值 + 1；</strong></p>
+</li>
+<li>
+<p>creator_trx_id ：创建该 Read View 的事务的事务 id。</p>
+</li>
+</ul>
+<h3 id="聚簇索引记录的两个隐藏列">聚簇索引记录的两个隐藏列：<img src="https://cdn.xiaolincoding.com//mysql/other/f595d13450878acd04affa82731f76c5.png" alt="图片" loading="lazy"></h3>
+<ul>
+<li>trx_id：修改某条记录的事务id。</li>
+<li>roll_pointer：每次对记录改动会把旧版本记录写到undolog中，这个隐藏列是指针，指向每一个旧版本记录，通过他找到修改之前的记录</li>
+</ul>
+<h3 id="创建read-view后">创建Read View后：</h3>
+<ul>
+<li>如果某条记录的trx_id &lt; min_trx_id，那么这条记录对于事务可见</li>
+<li>如果某条记录的trx_id &gt; max_trx_id，那么这条记录对当前事务不可见</li>
+<li>如果某条事务的min_trx_id &lt;= trx_id &lt;= max_trx_id，区m_ids列表中查看是否存在此事务id（存在说明之前还没提交）。
+<ul>
+<li>如果存在，那么此记录对于当前事务不可见</li>
+<li>如果不存在说明当时已经提交，那么此记录对于当前事务可见</li>
+</ul>
+</li>
+</ul>
+<p><strong>这种通过「版本链」来控制并发事务访问同一个记录时的行为就叫 MVCC（多版本并发控制）。</strong></p>
+<h3 id="可重复读工作原理">可重复读工作原理</h3>
+<p>在启动事务时就创建Read View。</p>
+<p>执行以下流程：</p>
+<ul>
+<li>事务 B 读取小林的账户余额记录，读到余额是 100 万；记录中的trx_id是50 &lt; min_trx_id 所以可以读取到这条记录</li>
+<li>事务 A 将小林的账户余额记录修改成 200 万，并没有提交事务；</li>
+<li>事务 B 读取小林的账户余额记录，读到余额还是 100 万；</li>
+<li>事务 A 提交事务；修改trx_id为51，并且将记录之前的值放入undolog，用roll_pointer指向记录之前的值</li>
+<li>事务 B 读取小林的账户余额记录，读到余额依然还是 100 万；A提交记录后，记录中的trx_id修改为51，属于min_trx_id和max_trx_id中间，需要判断，由于trx_id = 51 存在于B的m_ids中，所以A对这条记录的修改对B不可见</li>
+</ul>
+<figure data-type="image" tabindex="1"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/ImageHost4@main/mysql/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/%E4%BA%8B%E5%8A%A1ab%E7%9A%84%E8%A7%86%E5%9B%BE-new.png" alt="img" loading="lazy"></figure>
+<p><img src="https://a1m67.github.io/post-images/1723473383796.png" alt="image-20240811145556981" loading="lazy">)</p>
+<h3 id="读已提交的工作原理">读已提交的工作原理</h3>
+<figure data-type="image" tabindex="2"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/ImageHost4@main/mysql/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/%E8%AF%BB%E6%8F%90%E4%BA%A4%E4%BA%8B%E5%8A%A1.png" alt="img" loading="lazy"></figure>
+<p>B第二次读取到A仍然读到的是原数据，因为A没有提交但是已经把trx_id修改为51，在min和max直接，此时去m_ids中寻找发现51在里边，所以会去undolog中读取之前的记录值</p>
+<p>B的第三次读取，会重新创建快照，此时由于A已经提交了，所有m_ids中只有52，并且min_trx_id也已经变成了52，trx_id = 51 ,所以A的修改对B可见。</p>
+<figure data-type="image" tabindex="3"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/ImageHost4@main/mysql/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/%E8%AF%BB%E6%8F%90%E4%BA%A4%E4%BA%8B%E5%8A%A12.drawio.png" alt="img" loading="lazy"></figure>
+<h3 id="可重复读不能完全避免幻读">可重复读不能完全避免幻读：</h3>
+<ul>
+<li>A事务读取-&gt;B事务插入并提交-&gt;A事务更新记录，此时发生幻读现象，原因是不加for update的读取是快照读，而增删改都是当前读（读最新的）。</li>
+<li>A事务读取-&gt;B事务插入并提交-&gt;A事务select ... for update，发生幻读，原因是第一次是快照读，第二次是当前读</li>
+</ul>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB%E6%98%AF%E6%80%8E%E4%B9%88%E5%AE%9E%E7%8E%B0%E7%9A%84">事务隔离级别是怎么实现的</a>
+<ul>
+<li><a href="#%E4%BA%8B%E5%8A%A1%E7%9A%84%E7%89%B9%E6%80%A7">事务的特性</a></li>
+<li><a href="#%E5%B9%B6%E8%A1%8C%E5%BC%95%E5%8F%91%E7%9A%84%E9%97%AE%E9%A2%98">并行引发的问题</a></li>
+<li><a href="#%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB">事务隔离级别</a></li>
+<li><a href="#read-view%E5%9C%A8mvcc%E4%B8%AD%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86">Read View在MVCC中的工作原理</a>
+<ul>
+<li><a href="#read-view%E4%B8%AD%E7%9A%84%E5%9B%9B%E4%B8%AA%E9%87%8D%E8%A6%81%E5%AD%97%E6%AE%B5">Read View中的四个重要字段：</a></li>
+<li><a href="#%E8%81%9A%E7%B0%87%E7%B4%A2%E5%BC%95%E8%AE%B0%E5%BD%95%E7%9A%84%E4%B8%A4%E4%B8%AA%E9%9A%90%E8%97%8F%E5%88%97">聚簇索引记录的两个隐藏列：!图片</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BAread-view%E5%90%8E">创建Read View后：</a></li>
+<li><a href="#%E5%8F%AF%E9%87%8D%E5%A4%8D%E8%AF%BB%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86">可重复读工作原理</a></li>
+<li><a href="#%E8%AF%BB%E5%B7%B2%E6%8F%90%E4%BA%A4%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86">读已提交的工作原理</a></li>
+<li><a href="#%E5%8F%AF%E9%87%8D%E5%A4%8D%E8%AF%BB%E4%B8%8D%E8%83%BD%E5%AE%8C%E5%85%A8%E9%81%BF%E5%85%8D%E5%B9%BB%E8%AF%BB">可重复读不能完全避免幻读：</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://a1m67.github.io/post/dai-ma-sui-xiang-lu-shu-zu/">
+              <h3 class="post-title">
+                代码随想录-数组
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://a1m67.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

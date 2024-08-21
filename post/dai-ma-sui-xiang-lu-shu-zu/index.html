@@ -1,0 +1,447 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>代码随想录-数组 | Gridea</title>
+<link rel="shortcut icon" href="https://a1m67.github.io/favicon.ico?v=1724240269600">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://a1m67.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="代码随想录-数组 | Gridea - Atom Feed" href="https://a1m67.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="数组
+基础知识
+
+定义
+
+1.二分查找
+关键：循环不变量
+
+case1：左闭右闭
+
+right = num.length - 1
+while(left&lt;=right)
+right = mid-1;
+left =  mid+1
+
+
+ca..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://a1m67.github.io">
+  <img class="avatar" src="https://a1m67.github.io/images/avatar.png?v=1724240269600" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              代码随想录-数组
+            </h2>
+            <div class="post-info">
+              <span>
+                2023-12-10
+              </span>
+              <span>
+                6 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content" v-pre>
+                <h1 id="数组">数组</h1>
+<h3 id="基础知识">基础知识</h3>
+<ul>
+<li>定义</li>
+</ul>
+<h3 id="1二分查找">1.二分查找</h3>
+<p>关键：循环不变量</p>
+<ul>
+<li>case1：左闭右闭
+<ul>
+<li>right = num.length - 1</li>
+<li>while(left&lt;=right)</li>
+<li>right = mid-1;</li>
+<li>left =  mid+1</li>
+</ul>
+</li>
+<li>case2：左闭右开
+<ul>
+<li>right = num.length</li>
+<li>while(left&lt;right)</li>
+<li>right = mid</li>
+<li>left = mid+1</li>
+</ul>
+</li>
+</ul>
+<pre><code class="language-java">public class T704_BinarySearch {
+
+    public static void main(String[] args){
+        int []nums = {-1,0,3,5,9,12};
+        int target = 9;
+
+        System.out.println(search(nums, target));
+    }
+    //实现方式1
+//    public static int search(int[] nums, int target){
+//        int left = 0 ;
+//        int right = nums.length - 1 ;
+//        while (left &lt;= right){
+//            int mid = (left + right) / 2 ;
+//            if (nums[mid]&gt;target){
+//                right = mid - 1 ;
+//            }else if (nums[mid]&lt;target){
+//                left = mid + 1 ;
+//            }else {
+//                return mid ;
+//            }
+//        }
+//        return -1;
+//    }
+
+
+    //实现方式2
+    public static int search(int[] nums, int target){
+        int left = 0 ;
+        int right = nums.length;
+        while (left &lt; right){
+            int mid = (left + right) / 2 ;
+            if (nums[mid]&gt;target){
+                right = mid ;
+            }else if (nums[mid] &lt; target){
+                left = mid + 1;
+            }else {
+                return mid;
+            }
+        }
+        return -1;
+    }
+}
+</code></pre>
+<h3 id="2移除元素">2.移除元素</h3>
+<p>双指针-通过快慢指针一个for循环里完成两个for循环的动作</p>
+<pre><code class="language-java">public class T27_RemoveElement {
+    public static int removeElement(int[] nums, int val) {
+        int slow = 0 , fast = 0;
+        while (slow &lt; nums.length &amp;&amp; fast &lt; nums.length) {
+            if(nums[fast]!=val) {
+                nums[slow++] = nums[fast++];
+            }else {
+                fast++;
+            }
+        }
+        return slow;
+    }
+
+    public static void main(String[] args) {
+        int [] nums = new int[]{3,2,2,3};
+        System.out.println(removeElement(nums,3));
+    }
+}
+
+</code></pre>
+<h3 id="有序数组的平方">有序数组的平方</h3>
+<p>双指针，一个从最右边往左，一个从最左边往右</p>
+<pre><code class="language-java">
+public class T977_SortedSquares {
+    public static int[] sortedSquares(int[] nums) {
+        //方法一 笨蛋方法
+//        if (nums == null || nums.length == 0 ) {
+//            return nums;
+//        }
+//        if (nums.length == 1) {
+//            nums[0] = nums[0] * nums[0];
+//            return nums;
+//        }
+//        int [] middle = new int[nums.length];
+//        for (int i = 0; i &lt; nums.length; i++) {
+//            if (nums[i] &lt; 0) {
+//                middle[i] = 0 - nums[i];
+//            }else {
+//                middle[i] = nums[i];
+//            }
+//        }
+//        int min = Integer.MAX_VALUE;
+//        int poi = -1;
+//        for (int i = 0 ; i &lt; nums.length; i++) {
+//            if (min &gt; middle[i]) {
+//                min = middle[i];
+//                poi = i;
+//            }
+//        }
+//        int right = poi+1,left = poi-1;
+//        int current = 1;
+//        int [] res = new int[nums.length];
+//        res[0]=nums[poi] * nums[poi];
+//        while (left &gt;= 0 &amp;&amp; right &lt; nums.length){
+//            if(middle[left]&gt;middle[right]){
+//                res[current++] = nums[right]*nums[right];
+//                right++;
+//            }else{
+//                res[current++] = nums[left]*nums[left];
+//                left--;
+//            }
+//        }
+//        while (left &gt;= 0){
+//            res[current++] = nums[left]*nums[left];
+//            left--;
+//        }
+//        while (right &lt; nums.length){
+//            res[current++] = nums[right]*nums[right];
+//            right++;
+//        }
+//        return res;
+
+        //方法二
+        for (int i = 0; i &lt; nums.length; i++) {
+            nums[i] = nums[i] * nums[i];
+        }
+        int [] res = new int [nums.length];
+        int i = 0,j = nums.length - 1,current = nums.length-1;
+        while (i &lt;= j) {
+            if(nums[i] &gt; nums[j]){
+                res[current--] = nums[i++];
+            }else {
+                res[current--] = nums[j--];
+            }
+        }
+        return res;
+
+    }
+
+    public static void main(String[] args) {
+        int[] nums = new int[]{-4,-1,0,3,10};
+        nums = sortedSquares(nums);
+        for(int i:nums) System.out.println(i);;
+    }
+}
+
+</code></pre>
+<h3 id="长度最小的数组">长度最小的数组</h3>
+<ol>
+<li>暴力（目前力扣暴力已经无法通过所有测试用例）</li>
+</ol>
+<pre><code class="language-java">    public static int minSubArrayLen(int target, int[] nums) {
+        int len = 0,min = Integer.MAX_VALUE;
+        boolean flag = false;
+        for (int i = 0; i &lt; nums.length ; i++) {
+            if (nums[i] &gt;= target) {
+                return 1;
+            }
+            int sum = 0;
+            int count = 0;
+            for (int j = i;j&lt;nums.length;j++) {
+                sum += nums[j];
+                count ++;
+                if (sum &gt;= target) {
+                    if (count &lt; min){
+                        min = count;
+                        flag = true;
+                    }
+                }
+            }
+        }
+        if (!flag) min = 0;
+        return min;
+    }
+</code></pre>
+<ol start="2">
+<li>双指针+滑动窗口：
+<ol>
+<li>外层for循环改变一个指针，内层while循环改变另一个指针</li>
+</ol>
+</li>
+</ol>
+<pre><code class="language-java">public static int minSubArrayLen(int target, int[] nums) {
+    int start = 0,sum = 0,end = 0,min = Integer.MAX_VALUE;
+    for (end= 0 ;end &lt; nums.length;end++) {
+        sum += nums[end];
+        while (sum &gt;= target){
+            min = Math.min(min,end -start +1);
+            sum-=nums[start++];
+        }
+    }
+    return min == Integer.MAX_VALUE ? 0:min;
+}
+</code></pre>
+<h3 id="螺旋数组">螺旋数组</h3>
+<ul>
+<li>对于正方形的二维数组只需要考虑转多少圈以及最后中间是否剩一个值.如果剩一个一个值需要再转完圈后再单独加中间的值。另外转圈过程要保<br>
+证坚持左闭右开或者左开右闭</li>
+<li>对于矩形二维数组变成一维数组的情况， 需要在转完圈后单独考虑最内圈剩的一行或者一列</li>
+</ul>
+<pre><code class="language-java">    public static int[][] generateMatrix(int n) {
+        int loop = 1;
+        int[][] matrix = new int[n][n];
+        if (n == 1) {
+            matrix[0][0] = 1;
+            return matrix;
+        }
+        int start = 0;
+        int index = 1;
+        int i = 0, j = 0;
+        int offset = 1;
+        while (index &lt;= n * n) {
+            for (j = start; j &lt; n - loop; j++) {
+                matrix[start][j] = index++;
+            }
+            for (i = start; i &lt; n - loop; i++) {
+                matrix[i][j] = index++;
+            }
+            for (; j &gt;= loop; j--) {
+                matrix[i][j] = index++;
+            }
+            for (; i &gt;= loop; i--) {
+                matrix[i][j] = index++;
+            }
+            loop++;
+            start++;
+            index++;
+        }
+        if (n % 2 == 1) matrix[start][start] = index;
+        return matrix;
+    }
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20231210201452541.png" alt="" loading="lazy"></figure>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#%E6%95%B0%E7%BB%84">数组</a><br>
+*
+<ul>
+<li><a href="#%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86">基础知识</a></li>
+<li><a href="#1%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE">1.二分查找</a></li>
+<li><a href="#2%E7%A7%BB%E9%99%A4%E5%85%83%E7%B4%A0">2.移除元素</a></li>
+<li><a href="#%E6%9C%89%E5%BA%8F%E6%95%B0%E7%BB%84%E7%9A%84%E5%B9%B3%E6%96%B9">有序数组的平方</a></li>
+<li><a href="#%E9%95%BF%E5%BA%A6%E6%9C%80%E5%B0%8F%E7%9A%84%E6%95%B0%E7%BB%84">长度最小的数组</a></li>
+<li><a href="#%E8%9E%BA%E6%97%8B%E6%95%B0%E7%BB%84">螺旋数组</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://a1m67.github.io/post/py/">
+              <h3 class="post-title">
+                py
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://a1m67.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

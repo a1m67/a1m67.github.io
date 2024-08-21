@@ -1,0 +1,2556 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://a1m67.github.io</id>
+    <title>Gridea</title>
+    <updated>2024-08-21T11:38:22.324Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://a1m67.github.io"/>
+    <link rel="self" href="https://a1m67.github.io/atom.xml"/>
+    <subtitle>温故而知新</subtitle>
+    <logo>https://a1m67.github.io/images/avatar.png</logo>
+    <icon>https://a1m67.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2024, Gridea</rights>
+    <entry>
+        <title type="html"><![CDATA[MySQL索引]]></title>
+        <id>https://a1m67.github.io/post/mysql-suo-yin/</id>
+        <link href="https://a1m67.github.io/post/mysql-suo-yin/">
+        </link>
+        <updated>2024-08-21T11:36:52.000Z</updated>
+        <content type="html"><![CDATA[<h3 id="索引的分类">索引的分类</h3>
+<ul>
+<li>按<strong>数据结构</strong>分：B+tree 索引、Hash索引、Full-text索引</li>
+<li>按<strong>物理存储</strong>分：聚簇索引（主键索引）、二级索引（辅助索引）</li>
+<li>按<strong>字符特性</strong>分：主键索引、唯一索引、普通索引、前缀索引</li>
+<li>按<strong>字符个数</strong>分：单列索引、联合索引</li>
+</ul>
+<h4 id="按数据结构分">按数据结构分</h4>
+<figure data-type="image" tabindex="1"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/mysql/%E7%B4%A2%E5%BC%95/%E7%B4%A2%E5%BC%95%E5%88%86%E7%B1%BB.drawio.png" alt="img" loading="lazy"></figure>
+<p>创建表时，InnoDB存储引擎根据场景选择引擎</p>
+<ul>
+<li>有主键：默认使用主键作为聚簇索引的索引键（key）</li>
+<li>没主键：选择第一个<strong>不包含NULL值的唯一列</strong>作为聚簇索引的索引键</li>
+<li>上边两个都没有：InnoDB自动生成一个隐式自增id作为聚簇索引的索引键</li>
+</ul>
+<p>其他索引都成为辅助索引（二级索引、非聚簇索引）。索引默认使用B+Tree索引</p>
+<p><strong>B+Tree 相比于 B 树和二叉树来说，最大的优势在于查询效率很高，因为即使在数据量很大的情况，查询一个数据的磁盘 I/O 依然维持在 3-4次。（查询一个节点可以看做是一次I/O）</strong></p>
+<h5 id="二级索引查询过程">二级索引查询过程</h5>
+<p>主键索引和二级索引的B+Tree区别</p>
+<ul>
+<li>主键索引B+Tree的叶子结点存放的是实际数据</li>
+<li>二级索引B+Tree叶子结点存放的是主键值，而不是实际数据</li>
+</ul>
+<pre><code class="language-sql">select * from product where product_no = '0002';
+</code></pre>
+<p>查询时会纤检所二级索引中的B+Tree中的索引值（商品编码，product_no）找到对应的叶子结点，然后获取主键值，再通过主键索引中的B+Tree找到对应的叶子结点获取数据，这个过程叫 <strong>回表</strong>，需要查连个B+Tree才能查到数据。</p>
+<p>如果查询的数据在二级索引B+Tree的叶子结点里能查到，就不需要再去主键索引查，比如下变的</p>
+<pre><code class="language-sql">select id from product where product_no = '0002';
+</code></pre>
+<p><strong>这种在二级索引的 B+Tree 就能查询到结果的过程就叫作「覆盖索引」，也就是只需要查一个 B+Tree 就能找到数据</strong>。</p>
+<h5 id="为什么mysql选择btree作为索引结构">为什么MySQL选择B+Tree作为索引结构</h5>
+<h6 id="1-btree-vs-b-tree"><em><strong>1、B+Tree vs B Tree</strong></em></h6>
+<ol>
+<li>B+Tree只在叶子结点存储数据，B树的非叶子结点也存数据，所以B+Tree单个节点数据量更小，相同I/O次数下，就能查询更多节点</li>
+<li>B+Tree叶子结点采用双链表，适合MySQL一定范围的顺序查找，B树无法做到这一点</li>
+</ol>
+<h6 id="2-btree-vs-二叉树"><em><strong>2、B+Tree vs 二叉树</strong></em></h6>
+<p>对于有 N 个叶子节点的 B+Tree，其搜索复杂度为**<code>O(logdN)</code>**，其中 d 表示节点允许的最大子节点个数为 d 个。</p>
+<p>在实际的应用当中， d 值是大于100的，这样就保证了，即使数据达到千万级别时，B+Tree 的高度依然维持在 3~4 层左右，也就是说一次数据查询操作只需要做 3~4 次的磁盘 I/O 操作就能查询到目标数据。</p>
+<p>而二叉树的搜索时间复杂度是O（logN），所以二叉树的高度会比B+Tree高很多</p>
+<h6 id="3-btree-vs-hash"><em><strong>3、B+Tree vs Hash</strong></em></h6>
+<p>Hash在等值查询很快O(1)，但不擅长范围查询，所以B+Tree比Hash应用场景更广泛</p>
+<h4 id="按物理存储分">按物理存储分</h4>
+<p>索引分为聚簇索引（主键索引）、二级索引（辅助索引）。</p>
+<h4 id="按字段特性分类">按字段特性分类</h4>
+<p>从字段特性的角度来看，索引分为主键索引、唯一索引、普通索引、前缀索引。</p>
+<h5 id="主键索引建立在主键字段上的索引通常在创建表时一起创建一张表最多一个索引列不能为空">主键索引：建立在主键字段上的索引，通常在创建表时一起创建，一张表最多一个，索引列不能为空</h5>
+<p>创建方式</p>
+<pre><code class="language-sql">CREATE TABLE table_name  (
+  ....
+  PRIMARY KEY (index_column_1) USING BTREE
+);
+</code></pre>
+<h5 id="唯一索引建立在unique字段上的索引一张表可以有多个索引列的值必须唯一可以有空值">唯一索引：建立在UNIQUE字段上的索引，一张表可以有多个，索引列的值必须唯一，可以有空值</h5>
+<p>创建表时创建方式</p>
+<pre><code class="language-sql">CREATE TABLE table_name  (
+  ....
+  UNIQUE KEY(index_column_1,index_column_2,...) 
+);
+</code></pre>
+<p>建表之后创建方式</p>
+<pre><code class="language-sql">CREATE UNIQUE INDEX index_name
+ON table_name(index_column_1,index_column_2,...); 
+</code></pre>
+<h5 id="普通索引建立在普通字段的索引字段不需要为主键也不需要为unique">普通索引：建立在普通字段的索引，字段不需要为主键也不需要为UNIQUE</h5>
+<pre><code class="language-sql">CREATE TABLE table_name  (
+  ....
+  INDEX(index_column_1,index_column_2,...) 
+);
+</code></pre>
+<p>建表之后创建</p>
+<pre><code class="language-sql">CREATE INDEX index_name
+ON table_name(index_column_1,index_column_2,...); 
+</code></pre>
+<h5 id="前缀索引对字符类型字段的前几个字符建立的索引可以建立在-char-varchar-binary-varbinary-类型的列上">前缀索引：对字符类型字段的<em>前几个字符</em>建立的索引，可以建立在 char、varchar、binary、varbinary 类型的列上。</h5>
+<p>使用前缀索引是为了减少占用的存储空间</p>
+<pre><code class="language-sql">CREATE TABLE table_name(
+    column_list,
+    INDEX(column_name(length))
+); 
+</code></pre>
+<pre><code class="language-sql">CREATE INDEX index_name
+ON table_name(column_name(length)); 
+</code></pre>
+<h4 id="按字段个数分">按字段个数分</h4>
+<ul>
+<li>建立在单列上的索引叫单列索引，如主键索引</li>
+<li>建立在多列上的索引叫联合索引</li>
+</ul>
+<h5 id="联合索引">联合索引</h5>
+<p>比如，将商品表中的 product_no 和 name 字段组合成联合索引<code>(product_no, name)</code>，创建联合索引的方式如下：</p>
+<pre><code class="language-sql">CREATE INDEX index_product_no_name ON product(product_no, name);
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/mysql/%E7%B4%A2%E5%BC%95/%E8%81%94%E5%90%88%E7%B4%A2%E5%BC%95.drawio.png" alt="联合索引" loading="lazy"></figure>
+<p>当联合索引查询数据时，先按product_no字段比较，在product_no字段相同的情况下再按照name字段比较。</p>
+<p>所以使用联合索引存在<strong>最左匹配原则</strong>，就是按照最左优先的方式进行匹配，如果不遵循最左匹配原则，就会出现联合<strong>索引失效。</strong></p>
+<p>比如：</p>
+<ul>
+<li>where b=2</li>
+<li>where b=2 and c=3；</li>
+<li>where c=3；</li>
+</ul>
+<figure data-type="image" tabindex="3"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/mysql/%E7%B4%A2%E5%BC%95/%E8%81%94%E5%90%88%E7%B4%A2%E5%BC%95%E6%A1%88%E4%BE%8B.drawio.png" alt="img" loading="lazy"></figure>
+<p>如上图，a是有序的(1,2,2,3,4,5,6,7,8)，当a=2（b=7,8）也是有序的，但是如果没有a的条件，b(12,7,8,2,3,8,10,5,2)是无序的，所以b是全局无序部分有序。</p>
+<p><strong>利用索引的前提是索引里的 key 是有序的</strong>。</p>
+<p>所以只有<code>where a = 2 and b = 7</code>字样的字段才能使用联合索引，也就是索引生效。</p>
+<h5 id="联合索引范围查询">联合索引范围查询</h5>
+<p>key_len：int类型不为空 4个字节，可以为空再加一个字节，varchar类型如果字符集类型是utf8那么一个字符占4个字节，且要加<strong>2字节</strong>变长数组长度字段，统一是2字节。</p>
+<ol>
+<li>若是遇到 <code>select * from t_table where a &gt; 1 and b = 2</code>,此时由于a &gt; 1范围内中的b是无序的，所以会导致b无法使用联合索引查询。key_len = 4</li>
+<li>若是遇到 <code>select * from t_table where a &gt; 1 and b = 2</code>,此时a &gt; 1范围内中的b是无序的，但是a = 1时，b是有序的，所以b也可以使用到联合索引 key_len = 8</li>
+<li>若是遇到<code>SELECT * FROM t_table WHERE a BETWEEN 2 AND 8 AND b = 2</code>，在MySQL中，BEWTEEN是包含边界的，因此b可以用到联合索引查询 key_len = 8</li>
+<li>若是遇到<code>SELECT * FROM t_user WHERE name like 'j%' and age = 22</code>，由于是j%，而在数据库中name是根据字典序排的，所以可以确定出来[j,k)的一个范围，而age是相对有序的，所以会从第一个符合<code>like 'j%' and age = 22</code>的记录开始查询，因此a和b都用上了索引。这里name是varchar(30)所以他的 key_len =( 120 + 2 ) + 4</li>
+</ol>
+<p><strong>综上，联合索引的最左匹配在遇到范围查询，如&lt; 、&gt;的时候会停止匹配，返回查询的字段可以用到索引，后续字段无法使用联合索引，对于&gt;=、&lt;=、BETWEEN、like<em>前缀匹配</em>的范围查询，可以使用联合索引</strong></p>
+<h5 id="索引下推">索引下推</h5>
+<p>对于联合索引(a,b)，执行<code>select * from table where a &gt; 1 and b = 2</code>，b索引失效的情况，应该如何继续进行查找</p>
+<ul>
+<li>在MySQL5.6之前，只能从 a&gt;1 的第一个主键开始回表查询，到主键索引找到对应数据，再对比B。</li>
+<li>MySQL5.6引入了索引下推优化，可以在联合索引遍历过程中，对联合索引包含的字段先做判断，过滤掉不符合条件的记录，减少回表次数</li>
+</ul>
+<p>执行计划中出现了  Extra 为 <code>Using index condition</code>，说明用到了索引下推</p>
+<h5 id="索引区分度">索引区分度</h5>
+<p><strong>建立联合索引时，要把区分度大的字段排在前面，这样区分度大的字段越有可能被更多的 SQL 使用到</strong>。</p>
+<figure data-type="image" tabindex="4"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/mysql/%E7%B4%A2%E5%BC%95/%E5%8C%BA%E5%88%86%E5%BA%A6.png" alt="区分度计算公式" loading="lazy"></figure>
+<p>比如：</p>
+<ul>
+<li>性别的区分度就是2/n，区分度非常低</li>
+<li>uuid的区分度就很高</li>
+<li>如果索引的区分度很小，假设字段分布均匀，无论搜索那个值都得到一般数据，不用索引比较好，当某个值在表中数据行出现中的百分比（一般为30%）很高，MySQL的查询优化器一般会忽略索引，进行全表扫描。</li>
+</ul>
+<h5 id="联合索引排序">联合索引排序</h5>
+<pre><code class="language-sql">select * from order where status = 1 order by create_time asc
+</code></pre>
+<p>可以给Status与create_time建立联合索引，因为联合索引内部是有序的，所以建立联合索引可以提前给create_time排好序，后续查询的时候就不需要再去排序了，提高查询效率。</p>
+<h4 id="什么时候不需要创建索引">什么时候不需要创建索引</h4>
+<h5 id="索引的缺点">索引的缺点</h5>
+<ul>
+<li>需要占用空间，索引越多占用空间越大</li>
+<li>创建索引和维护索引需要消耗时间，数据量越大耗时越大</li>
+<li>会降低增删改的效率，因为每次增删改索引，B+树需要动态维护索引的有序性</li>
+</ul>
+<h5 id="适用索引的场景">适用索引的场景</h5>
+<ul>
+<li>字段有唯一性限制的，比如商品编码</li>
+<li>经常用于 <code>WHERE</code> 查询条件的字段，如果查询的不是一个字段，可以建立联合索引</li>
+<li>经常用于 <code>GROUP BY</code> 和 <code>ORDER BY</code> 的字段，这样查询后就不需要再去做一次排序了。</li>
+</ul>
+<h5 id="不需要创建索引的场景">不需要创建索引的场景</h5>
+<ul>
+<li><code>WHERE</code> 条件，<code>GROUP BY</code>，<code>ORDER BY</code> 里用不到的字段</li>
+<li>字段中存在大量重复数据，不需要创建索引，比如性别字段，只有男女</li>
+<li>表数据太少的时候，不需要创建索引；</li>
+<li>经常更新的字段不用创建索引，比如不要对电商项目的用户余额建立索引</li>
+</ul>
+<h4 id="优化索引的方法">优化索引的方法</h4>
+<h5 id="前缀索引优化使用某个字段中字符串的前几个字符建立索引">前缀索引优化：使用某个字段中字符串的前几个字符建立索引</h5>
+<p>优点：可以减少索引字段大小、可以增加索引页中存储的索引格式</p>
+<p>局限性：order by无法使用前缀索引。无法把前缀索引用作覆盖索引</p>
+<h5 id="覆盖索引sql-中-query-的所有字段在索引-btree-的叶子节点上都能找得到的那些索引从二级索引中查询得到记录而不需要通过聚簇索引查询获得可以避免回表的操作">覆盖索引：SQL 中 query 的所有字段，在索引 B+Tree 的叶子节点上都能找得到的那些索引，从二级索引中查询得到记录，而不需要通过聚簇索引查询获得，可以避免回表的操作。</h5>
+<p>比如如果只需要查询商品名称、价格，那么可以给 「商品ID、名称、价格」 作为一个联合索引。这样既不需要查询整条记录也不用去回表查询</p>
+<h5 id="主键最好是自增的">主键最好是自增的</h5>
+<ul>
+<li>插入新记录，都是追加操作，不需要移动数据，如果非自增主键，在一个页慢的情况，在中间插入一条数据，会造成 页分裂，还需要数据迁移，同时还会有内存碎片</li>
+<li>主键长度不要太大，因为二级索引的叶子结点存放的是主键，主键长度短二级索引占得空间小。</li>
+</ul>
+<figure data-type="image" tabindex="5"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/mysql/%E7%B4%A2%E5%BC%95/%E9%A1%B5%E5%88%86%E8%A3%82.png" alt="img" loading="lazy"></figure>
+<h5 id="索引最好设置为not-null">索引最好设置为NOT NULL</h5>
+<ul>
+<li>如果存在NULL值，优化器优化选择会更复杂</li>
+<li>NULL值列表会占用额外的空间，如果所有数据列都是NOT NULL可以将这个字段省略。</li>
+</ul>
+<h5 id="索引失效的情况">索引失效的情况</h5>
+<ul>
+<li>当我们使用左或者左右模糊匹配的时候，也就是 <code>like %xx</code> 或者 <code>like %xx%</code>这两种方式都会造成索引失效；</li>
+<li>当我们在查询条件中对<strong>索引列</strong>做了计算、函数、类型转换操作，这些情况下都会造成索引失效；</li>
+<li>联合索引要能正确使用需要遵循最左匹配原则，也就是按照最左优先的方式进行索引的匹配，否则就会导致索引失效。</li>
+<li>在 WHERE 子句中，如果在 OR 前的条件列是索引列，而在 OR 后的条件列不是索引列，那么索引会失效。</li>
+<li>对索引隐式类型转换，比如将phone存的是varchar类型的，在比较时会先将varchar转换为数字，也就是对其隐式使用了CAST函数</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[MySQL锁]]></title>
+        <id>https://a1m67.github.io/post/mysql-suo/</id>
+        <link href="https://a1m67.github.io/post/mysql-suo/">
+        </link>
+        <updated>2024-08-12T14:39:56.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="1全局锁"><strong>1.	全局锁</strong></h1>
+<blockquote>
+<pre><code class="language-sql">flush tables with read lock
+</code></pre>
+</blockquote>
+<p>执行后，整个数据库只读，下方操作都会被阻塞</p>
+<ul>
+<li>对数据的增删改操作，比如 insert、delete、update等语句；</li>
+<li>对表结构的更改操作，比如 alter table、drop table 等语句。</li>
+</ul>
+<p>释放全局锁</p>
+<blockquote>
+<pre><code class="language-sql">unlock tables
+</code></pre>
+</blockquote>
+<p>除此之外会话断开也会释放全局锁</p>
+<p>应用场景： <strong>全表逻辑备份</strong></p>
+<p>缺点：1. 全表只读不能更新数据，如果数据量很大非常耗时</p>
+<p>解决方法，如果使用的数据库引擎支持 <strong>可重复读</strong>，可以在备份前开启事务。此时不会影响其他操作的执行并且依然可以进行备份。</p>
+<p>备份数据库的工具是 mysqldump，在使用 mysqldump 时加上 <code>–single-transaction</code> 参数的时候，就会开启事务</p>
+<p>MyISAM只能使用全表锁</p>
+<h1 id="2表级锁">2.表级锁</h1>
+<ul>
+<li>表锁；</li>
+<li>元数据锁（MDL）;</li>
+<li>意向锁；</li>
+<li>AUTO-INC 锁；</li>
+</ul>
+<h2 id="表锁">表锁</h2>
+<p>加锁</p>
+<pre><code class="language-sql">//表级别的共享锁，也就是读锁；
+lock tables t_student read;
+
+//表级别的独占锁，也就是写锁；
+lock tables t_stuent write;
+</code></pre>
+<p>如果加了读锁，<strong>本线程</strong>和<strong>其他线程</strong>的写操作都会被阻塞</p>
+<p>解锁</p>
+<pre><code class="language-sql">unlock tables
+</code></pre>
+<p>会话退出也会断开锁。</p>
+<p><strong>InnoDB</strong>不推荐表级锁，因为支持<strong>行级锁</strong></p>
+<h2 id="元数据锁mdl">元数据锁（MDL）</h2>
+<p>不需要显示加锁，数据库会自动加锁</p>
+<ul>
+<li>进行CRUD时，加的是MDL读锁。</li>
+<li>进行表结构变更时，加的是MDL写锁。</li>
+</ul>
+<p>MDL保证用户CRUD 时，避免被其他线程更改表结构</p>
+<ul>
+<li>在执行select语句（MDL读锁）时，其他线程修改表结构（MDL写锁），会被阻塞，直到执行完select（释放MDL读锁）</li>
+<li>执行修改表结构的期间（MDL写锁），如果其他线程要执行CRUD操作，会被阻塞，直到表结构变更完成（释放MDL写锁）</li>
+</ul>
+<p><strong>MDL锁释放时机</strong>：事务提交才会释放，在事务执行期间始终持有。</p>
+<p>问题：</p>
+<ol>
+<li>A线程是一个长事务，始终不提交，对A进行一个Select操作，此时A持有MDL写锁</li>
+<li>B线程也进行同样的select操作，此时B线程也可以正常读取，因为读读不阻塞</li>
+<li>C线程修改了表字段，要加MDL写锁，由于此时A没有释放写锁，所以C会阻塞</li>
+</ol>
+<p>C阻塞之后，后续对该表的select语句都会被阻塞，如果后续大量select语句到来，会导致大量线程阻塞，数据库的线程很快就会爆满。</p>
+<p>C线程阻塞，后续申请读锁也会被阻塞的原因：申请MDL的操作会形成一个队列，队列中的写锁<strong>优先级高于读锁</strong>。</p>
+<p>因此变更表结构需要先检查是否长事务，如果有并且加上的MDL读锁可以考虑kill掉。</p>
+<h2 id="意向锁">意向锁</h2>
+<p><strong>意向锁的目的是为了快速判断表里是否有记录被加锁（为行锁服务）</strong>。</p>
+<ul>
+<li>在使用 InnoDB 引擎的表里对某些记录加上「共享锁」之前，需要先在表级别加上一个「意向共享锁」；</li>
+<li>在使用 InnoDB 引擎的表里对某些纪录加上「独占锁」之前，需要先在表级别加上一个「意向独占锁」；</li>
+</ul>
+<p>否则如果要加独占表锁，就需要遍历表中的所有记录，查看表中是否存在行级锁。</p>
+<p>意向锁和意向锁不会冲突，也不会和行级锁冲突。</p>
+<p>意向锁只会和**表级共享锁(lock tables table_name read)和表级独占锁(lock tables ... write)**冲突,</p>
+<p><strong>读读不共享，读写、写写互斥</strong></p>
+<h2 id="auto-inc锁">AUTO-INC锁</h2>
+<p>在5.1.22之前 在插入数据时，通过加<strong>表级别的AUTO-INC锁</strong>来给被<code>ATUO-INCRMENT</code>参数修饰的字段赋值，等到<strong>插入操作执行完成释放锁</strong></p>
+<p>在5.1.22之后 InnoDB提供了一种更轻量级的锁实现自增，在插入数据时，给被<code>AUTO_INCREMENT</code>修饰的字段<strong>赋一个自增的值就释放</strong>这个轻量级锁。</p>
+<p>InnoDB提供了<code>innodb-autoinc-lock-mode</code>系统变量控制锁</p>
+<ul>
+<li>
+<p>当 innodb_autoinc_lock_mode = 0，就采用 AUTO-INC 锁，语句执行结束后才释放锁；</p>
+</li>
+<li>
+<p>当 innodb_autoinc_lock_mode = 2，就采用轻量级锁，申请自增主键后就释放锁，并不需要等语句执行后才释放。</p>
+</li>
+<li>
+<p>当 innodb_autoinc_lock_mode = 1：</p>
+<ul>
+<li>普通 insert 语句，自增锁在申请之后就马上释放；</li>
+<li>类似 insert … select 这样的批量插入数据的语句，自增锁还是要等语句结束后才被释放；</li>
+</ul>
+</li>
+</ul>
+<p>当<code>innodb_autoinc_lock_mode</code>=2时，效率最高，但是搭配binlog日志格式是statement进行主从复制的时候会出现数据不一致问题</p>
+<h1 id="todo-学完binlog之后看这里补充一下">todo 学完binlog之后看这里，补充一下。</h1>
+<h1 id="3-行级锁">3. 行级锁</h1>
+<p>普通select是快照读，如果需要查询时加行锁，可以使用下列方式，查询加锁成为 <strong>锁定读</strong></p>
+<pre><code class="language-sql">//对读取的记录加共享锁
+select ... lock in share mode;
+
+//对读取的记录加独占锁
+select ... for update;
+</code></pre>
+<p>上面这两条语句必须在事务中，<strong>因为当事务提交了，锁就会被释放</strong>，所以在使用这两条语句的时候，要加上 <strong>begin、start transaction 或者 set autocommit = 0（三种开启事务的方式）</strong>。</p>
+<p>SS共享，其他的全部互斥</p>
+<figure data-type="image" tabindex="1"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/mysql/%E9%94%81/x%E9%94%81%E5%92%8Cs%E9%94%81.png" alt="img" loading="lazy"></figure>
+<h2 id="record-lock">Record Lock</h2>
+<p>记录锁，锁住一条记录。分为S锁和X锁</p>
+<ul>
+<li>一个事务对一条记录加了S锁，后续其他事务还能对这条记录加S锁，但是不能加X锁</li>
+<li>一个事务对一条记录加了X锁，后续其他事务不能对这条记录加S锁，也不能加X锁</li>
+</ul>
+<p>当事务commit之后，锁自动释放</p>
+<h2 id="gap-lock">Gap Lock</h2>
+<p>间隙锁，锁一个范围，左开右开区间(3,5)只锁4。</p>
+<p>间隙锁之间兼容，两个事务可以同时持有包含共同间隙范围的间隙锁</p>
+<h2 id="next-key-lock">Next-Key Lock</h2>
+<p>Record Lock + Gap Lock，锁定一个范围 + 记录本身，间隙锁兼容但是还要考虑记录锁的S和X型的关系，所以</p>
+<p><strong>next-key lock 是包含间隙锁+记录锁的，如果一个事务获取了 X 型的 next-key lock，那么另外一个事务在获取相同范围的 X 型的 next-key lock 时，是会被阻塞的</strong>。</p>
+<p><img src="https://a1m67.github.io/post-images/1723473723943.png" alt="image-20240811165109814" loading="lazy">)</p>
+<h2 id="插入意向锁">插入意向锁</h2>
+<p>一个事务在插入一条记录之前，先判断是否有间隙锁，如果有间隙锁，在插入操作时会阻塞，直到拥有间隙锁的事务提交，在此期间生成一个插入意向锁，表示有事务想在某区间插入新纪录，但是现在处于等待状态。</p>
+<p>插入意向锁名字虽然有意向锁，但是它并<strong>不是意向锁，它是一种特殊的间隙锁，属于行级别锁</strong>。</p>
+<p>假设上图有一个（3,5）的间隙锁，A未提交的时候，B向id=4插入一条数据，会判断4已经被A加了间隙锁，于是B会生成一个插入意向锁，并设置为等待状态且事务B阻塞，直到A提交事务。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[MySQL事务]]></title>
+        <id>https://a1m67.github.io/post/mysql-shi-wu/</id>
+        <link href="https://a1m67.github.io/post/mysql-shi-wu/">
+        </link>
+        <updated>2024-08-12T14:33:36.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="事务隔离级别是怎么实现的">事务隔离级别是怎么实现的</h1>
+<h2 id="事务的特性">事务的特性</h2>
+<ul>
+<li>A（<strong>Atomicity</strong>原子性，通过undolog保证）：一个事务中的所有操作，要么全部完成，要么全部不完成</li>
+<li>C （<strong>Consistency</strong>一致性，最终目的）：是指事务操作前和操作后，数据满足完整性约束，数据库保持一致性状态。比如，用户 A 和用户 B 在银行分别有 800 元和 600 元，总共 1400 元，用户 A 给用户 B 转账 200 元，分为两个步骤，从 A 的账户扣除 200 元和对 B 的账户增加 200 元。一致性就是要求上述步骤操作后，最后的结果是用户 A 还有 600 元，用户 B 有 800 元，总共 1400 元，而不会出现用户 A 扣除了 200 元，但用户 B 未增加的情况（该情况，用户 A 和 B 均为 600 元，总共 1200 元）。</li>
+<li>I （<strong>Isolation</strong>隔离性 ，通过<strong>MVCC</strong>保证）：数据库允许多个并发事务同时对其数据进行读写和修改的能力，隔离性可以防止多个事务并发执行时由于交叉执行而导致数据的不一致</li>
+<li>D （<strong>Durability</strong>持久性 通过<strong>redolog</strong>保证）：事务处理结束后，对数据的修改就是永久的，即便系统故障也不会丢失。</li>
+<li>同过AID保证C</li>
+</ul>
+<h2 id="并行引发的问题">并行引发的问题</h2>
+<ul>
+<li>脏读：<strong>如果一个事务「读到」了另一个「未提交事务修改过的数据」，就意味着发生了「脏读」现象。B读到了A修改后的数据，但是A修改的数据回滚了</strong>，也就是读到了过期数据。</li>
+<li>不可重复读：**在一个事务内多次读取同一个数据，如果出现前后两次读到的数据不一样的情况，就意味着发生了「不可重复读」现象。**也就是在前后两次读的过程中有其他事务修改了数据</li>
+<li>幻读：<strong>在一个事务内多次查询某个符合查询条件的「记录数量」，如果出现前后两次查询到的记录数量不一样的情况，就意味着发生了「幻读」现象。</strong>，也就是在前后读取的过程中有其他事务添加或者修改了记录数量</li>
+<li>严重程度：脏读 &gt; 不可重复度 &gt; 幻读</li>
+</ul>
+<h2 id="事务隔离级别">事务隔离级别</h2>
+<ul>
+<li>读未提交：一个事务变更完不管是否提交，<strong>其他事务都能看到他的变更</strong>。脏读、不可重复读、幻读。</li>
+<li>读已提交：一个事务提交完后，其他事务才能看到他的变更。不可重复读、幻读。</li>
+<li>可重复读：一个事务看到的数据跟这个事务启动时看到的数据始终保持一致。InnoDB默认隔离级别。幻读</li>
+<li>串行化：对记录加锁，多个事务写的时候出现读写重读，后续的事务必须等待前边的事务完成后才能执行。</li>
+<li>可重复读级别解决幻读的两种方案：
+<ul>
+<li>针对快照读（普通select），通过MVCC</li>
+<li>针对当前读（select ... for update），通过next-key lock（记录锁+间隙锁）。执行select ... for update，如果其他事务在next-key lock的范围内插入数据，那么插入数据会被阻塞无法插入。</li>
+</ul>
+</li>
+<li>四种隔离级别实现方式
+<ul>
+<li>读未提交，直接读取最新数据</li>
+<li>串行化，通过加读写锁避免并行访问</li>
+<li>读已提交：通过read view，不过创建快照是在每个语句执行前</li>
+<li>可重复读：通过read view，不过创建快照是在启动事务时。</li>
+</ul>
+</li>
+</ul>
+<h2 id="read-view在mvcc中的工作原理">Read View在MVCC中的工作原理</h2>
+<h3 id="read-view中的四个重要字段">Read View中的四个重要字段：</h3>
+<p>​	<img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/ImageHost4@main/mysql/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/readview%E7%BB%93%E6%9E%84.drawio.png" alt="img" loading="lazy"></p>
+<ul>
+<li>
+<p>m_ids：创建Read View时，当前在数据库中活跃且未提交（启动了还没提交的事务列表）的<strong>事务列表</strong></p>
+</li>
+<li>
+<p>min_trx_id：创建Read View时,活跃事务中id最小的事务</p>
+</li>
+<li>
+<p>max_trx_id：<strong>创建 Read View 时全局事务中最大的事务 id 值 + 1；</strong></p>
+</li>
+<li>
+<p>creator_trx_id ：创建该 Read View 的事务的事务 id。</p>
+</li>
+</ul>
+<h3 id="聚簇索引记录的两个隐藏列">聚簇索引记录的两个隐藏列：<img src="https://cdn.xiaolincoding.com//mysql/other/f595d13450878acd04affa82731f76c5.png" alt="图片" loading="lazy"></h3>
+<ul>
+<li>trx_id：修改某条记录的事务id。</li>
+<li>roll_pointer：每次对记录改动会把旧版本记录写到undolog中，这个隐藏列是指针，指向每一个旧版本记录，通过他找到修改之前的记录</li>
+</ul>
+<h3 id="创建read-view后">创建Read View后：</h3>
+<ul>
+<li>如果某条记录的trx_id &lt; min_trx_id，那么这条记录对于事务可见</li>
+<li>如果某条记录的trx_id &gt; max_trx_id，那么这条记录对当前事务不可见</li>
+<li>如果某条事务的min_trx_id &lt;= trx_id &lt;= max_trx_id，区m_ids列表中查看是否存在此事务id（存在说明之前还没提交）。
+<ul>
+<li>如果存在，那么此记录对于当前事务不可见</li>
+<li>如果不存在说明当时已经提交，那么此记录对于当前事务可见</li>
+</ul>
+</li>
+</ul>
+<p><strong>这种通过「版本链」来控制并发事务访问同一个记录时的行为就叫 MVCC（多版本并发控制）。</strong></p>
+<h3 id="可重复读工作原理">可重复读工作原理</h3>
+<p>在启动事务时就创建Read View。</p>
+<p>执行以下流程：</p>
+<ul>
+<li>事务 B 读取小林的账户余额记录，读到余额是 100 万；记录中的trx_id是50 &lt; min_trx_id 所以可以读取到这条记录</li>
+<li>事务 A 将小林的账户余额记录修改成 200 万，并没有提交事务；</li>
+<li>事务 B 读取小林的账户余额记录，读到余额还是 100 万；</li>
+<li>事务 A 提交事务；修改trx_id为51，并且将记录之前的值放入undolog，用roll_pointer指向记录之前的值</li>
+<li>事务 B 读取小林的账户余额记录，读到余额依然还是 100 万；A提交记录后，记录中的trx_id修改为51，属于min_trx_id和max_trx_id中间，需要判断，由于trx_id = 51 存在于B的m_ids中，所以A对这条记录的修改对B不可见</li>
+</ul>
+<figure data-type="image" tabindex="1"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/ImageHost4@main/mysql/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/%E4%BA%8B%E5%8A%A1ab%E7%9A%84%E8%A7%86%E5%9B%BE-new.png" alt="img" loading="lazy"></figure>
+<p><img src="https://a1m67.github.io/post-images/1723473383796.png" alt="image-20240811145556981" loading="lazy">)</p>
+<h3 id="读已提交的工作原理">读已提交的工作原理</h3>
+<figure data-type="image" tabindex="2"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/ImageHost4@main/mysql/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/%E8%AF%BB%E6%8F%90%E4%BA%A4%E4%BA%8B%E5%8A%A1.png" alt="img" loading="lazy"></figure>
+<p>B第二次读取到A仍然读到的是原数据，因为A没有提交但是已经把trx_id修改为51，在min和max直接，此时去m_ids中寻找发现51在里边，所以会去undolog中读取之前的记录值</p>
+<p>B的第三次读取，会重新创建快照，此时由于A已经提交了，所有m_ids中只有52，并且min_trx_id也已经变成了52，trx_id = 51 ,所以A的修改对B可见。</p>
+<figure data-type="image" tabindex="3"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/ImageHost4@main/mysql/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/%E8%AF%BB%E6%8F%90%E4%BA%A4%E4%BA%8B%E5%8A%A12.drawio.png" alt="img" loading="lazy"></figure>
+<h3 id="可重复读不能完全避免幻读">可重复读不能完全避免幻读：</h3>
+<ul>
+<li>A事务读取-&gt;B事务插入并提交-&gt;A事务更新记录，此时发生幻读现象，原因是不加for update的读取是快照读，而增删改都是当前读（读最新的）。</li>
+<li>A事务读取-&gt;B事务插入并提交-&gt;A事务select ... for update，发生幻读，原因是第一次是快照读，第二次是当前读</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[代码随想录-数组]]></title>
+        <id>https://a1m67.github.io/post/dai-ma-sui-xiang-lu-shu-zu/</id>
+        <link href="https://a1m67.github.io/post/dai-ma-sui-xiang-lu-shu-zu/">
+        </link>
+        <updated>2023-12-10T11:17:13.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="数组">数组</h1>
+<h3 id="基础知识">基础知识</h3>
+<ul>
+<li>定义</li>
+</ul>
+<h3 id="1二分查找">1.二分查找</h3>
+<p>关键：循环不变量</p>
+<ul>
+<li>case1：左闭右闭
+<ul>
+<li>right = num.length - 1</li>
+<li>while(left&lt;=right)</li>
+<li>right = mid-1;</li>
+<li>left =  mid+1</li>
+</ul>
+</li>
+<li>case2：左闭右开
+<ul>
+<li>right = num.length</li>
+<li>while(left&lt;right)</li>
+<li>right = mid</li>
+<li>left = mid+1</li>
+</ul>
+</li>
+</ul>
+<pre><code class="language-java">public class T704_BinarySearch {
+
+    public static void main(String[] args){
+        int []nums = {-1,0,3,5,9,12};
+        int target = 9;
+
+        System.out.println(search(nums, target));
+    }
+    //实现方式1
+//    public static int search(int[] nums, int target){
+//        int left = 0 ;
+//        int right = nums.length - 1 ;
+//        while (left &lt;= right){
+//            int mid = (left + right) / 2 ;
+//            if (nums[mid]&gt;target){
+//                right = mid - 1 ;
+//            }else if (nums[mid]&lt;target){
+//                left = mid + 1 ;
+//            }else {
+//                return mid ;
+//            }
+//        }
+//        return -1;
+//    }
+
+
+    //实现方式2
+    public static int search(int[] nums, int target){
+        int left = 0 ;
+        int right = nums.length;
+        while (left &lt; right){
+            int mid = (left + right) / 2 ;
+            if (nums[mid]&gt;target){
+                right = mid ;
+            }else if (nums[mid] &lt; target){
+                left = mid + 1;
+            }else {
+                return mid;
+            }
+        }
+        return -1;
+    }
+}
+</code></pre>
+<h3 id="2移除元素">2.移除元素</h3>
+<p>双指针-通过快慢指针一个for循环里完成两个for循环的动作</p>
+<pre><code class="language-java">public class T27_RemoveElement {
+    public static int removeElement(int[] nums, int val) {
+        int slow = 0 , fast = 0;
+        while (slow &lt; nums.length &amp;&amp; fast &lt; nums.length) {
+            if(nums[fast]!=val) {
+                nums[slow++] = nums[fast++];
+            }else {
+                fast++;
+            }
+        }
+        return slow;
+    }
+
+    public static void main(String[] args) {
+        int [] nums = new int[]{3,2,2,3};
+        System.out.println(removeElement(nums,3));
+    }
+}
+
+</code></pre>
+<h3 id="有序数组的平方">有序数组的平方</h3>
+<p>双指针，一个从最右边往左，一个从最左边往右</p>
+<pre><code class="language-java">
+public class T977_SortedSquares {
+    public static int[] sortedSquares(int[] nums) {
+        //方法一 笨蛋方法
+//        if (nums == null || nums.length == 0 ) {
+//            return nums;
+//        }
+//        if (nums.length == 1) {
+//            nums[0] = nums[0] * nums[0];
+//            return nums;
+//        }
+//        int [] middle = new int[nums.length];
+//        for (int i = 0; i &lt; nums.length; i++) {
+//            if (nums[i] &lt; 0) {
+//                middle[i] = 0 - nums[i];
+//            }else {
+//                middle[i] = nums[i];
+//            }
+//        }
+//        int min = Integer.MAX_VALUE;
+//        int poi = -1;
+//        for (int i = 0 ; i &lt; nums.length; i++) {
+//            if (min &gt; middle[i]) {
+//                min = middle[i];
+//                poi = i;
+//            }
+//        }
+//        int right = poi+1,left = poi-1;
+//        int current = 1;
+//        int [] res = new int[nums.length];
+//        res[0]=nums[poi] * nums[poi];
+//        while (left &gt;= 0 &amp;&amp; right &lt; nums.length){
+//            if(middle[left]&gt;middle[right]){
+//                res[current++] = nums[right]*nums[right];
+//                right++;
+//            }else{
+//                res[current++] = nums[left]*nums[left];
+//                left--;
+//            }
+//        }
+//        while (left &gt;= 0){
+//            res[current++] = nums[left]*nums[left];
+//            left--;
+//        }
+//        while (right &lt; nums.length){
+//            res[current++] = nums[right]*nums[right];
+//            right++;
+//        }
+//        return res;
+
+        //方法二
+        for (int i = 0; i &lt; nums.length; i++) {
+            nums[i] = nums[i] * nums[i];
+        }
+        int [] res = new int [nums.length];
+        int i = 0,j = nums.length - 1,current = nums.length-1;
+        while (i &lt;= j) {
+            if(nums[i] &gt; nums[j]){
+                res[current--] = nums[i++];
+            }else {
+                res[current--] = nums[j--];
+            }
+        }
+        return res;
+
+    }
+
+    public static void main(String[] args) {
+        int[] nums = new int[]{-4,-1,0,3,10};
+        nums = sortedSquares(nums);
+        for(int i:nums) System.out.println(i);;
+    }
+}
+
+</code></pre>
+<h3 id="长度最小的数组">长度最小的数组</h3>
+<ol>
+<li>暴力（目前力扣暴力已经无法通过所有测试用例）</li>
+</ol>
+<pre><code class="language-java">    public static int minSubArrayLen(int target, int[] nums) {
+        int len = 0,min = Integer.MAX_VALUE;
+        boolean flag = false;
+        for (int i = 0; i &lt; nums.length ; i++) {
+            if (nums[i] &gt;= target) {
+                return 1;
+            }
+            int sum = 0;
+            int count = 0;
+            for (int j = i;j&lt;nums.length;j++) {
+                sum += nums[j];
+                count ++;
+                if (sum &gt;= target) {
+                    if (count &lt; min){
+                        min = count;
+                        flag = true;
+                    }
+                }
+            }
+        }
+        if (!flag) min = 0;
+        return min;
+    }
+</code></pre>
+<ol start="2">
+<li>双指针+滑动窗口：
+<ol>
+<li>外层for循环改变一个指针，内层while循环改变另一个指针</li>
+</ol>
+</li>
+</ol>
+<pre><code class="language-java">public static int minSubArrayLen(int target, int[] nums) {
+    int start = 0,sum = 0,end = 0,min = Integer.MAX_VALUE;
+    for (end= 0 ;end &lt; nums.length;end++) {
+        sum += nums[end];
+        while (sum &gt;= target){
+            min = Math.min(min,end -start +1);
+            sum-=nums[start++];
+        }
+    }
+    return min == Integer.MAX_VALUE ? 0:min;
+}
+</code></pre>
+<h3 id="螺旋数组">螺旋数组</h3>
+<ul>
+<li>对于正方形的二维数组只需要考虑转多少圈以及最后中间是否剩一个值.如果剩一个一个值需要再转完圈后再单独加中间的值。另外转圈过程要保<br>
+证坚持左闭右开或者左开右闭</li>
+<li>对于矩形二维数组变成一维数组的情况， 需要在转完圈后单独考虑最内圈剩的一行或者一列</li>
+</ul>
+<pre><code class="language-java">    public static int[][] generateMatrix(int n) {
+        int loop = 1;
+        int[][] matrix = new int[n][n];
+        if (n == 1) {
+            matrix[0][0] = 1;
+            return matrix;
+        }
+        int start = 0;
+        int index = 1;
+        int i = 0, j = 0;
+        int offset = 1;
+        while (index &lt;= n * n) {
+            for (j = start; j &lt; n - loop; j++) {
+                matrix[start][j] = index++;
+            }
+            for (i = start; i &lt; n - loop; i++) {
+                matrix[i][j] = index++;
+            }
+            for (; j &gt;= loop; j--) {
+                matrix[i][j] = index++;
+            }
+            for (; i &gt;= loop; i--) {
+                matrix[i][j] = index++;
+            }
+            loop++;
+            start++;
+            index++;
+        }
+        if (n % 2 == 1) matrix[start][start] = index;
+        return matrix;
+    }
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20231210201452541.png" alt="" loading="lazy"></figure>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[py]]></title>
+        <id>https://a1m67.github.io/post/py/</id>
+        <link href="https://a1m67.github.io/post/py/">
+        </link>
+        <updated>2023-12-10T11:11:50.000Z</updated>
+        <content type="html"><![CDATA[<ul>
+<li>
+<p>格式化输出</p>
+<p>eg:</p>
+<pre><code>name='张三'
+country= 'China'
+age=19
+print(&quot;我的名字是 %s ，我的国籍是 %s &quot;%(name,country))
+print('我的年纪是 %d 岁'%age)
+#sep 控制字符串之间的分隔符
+print(&quot;www&quot;,&quot;bilibili&quot;,&quot;com&quot;,sep=&quot;.&quot;)
+输出：
+我的名字是 张三 ，我的国籍是 China 
+我的年纪是 19 岁
+www.bilibili.com
+</code></pre>
+</li>
+<li>
+<p>整除是//</p>
+</li>
+<li>
+<p>pycharm 直接多行注释， 先选中代码  ctrl + /</p>
+</li>
+<li>
+<p>平方可以直接用**</p>
+</li>
+<li>
+<p>py字符串是str</p>
+</li>
+<li>
+<p>直接交换了<br>
+如 a,b=b,a</p>
+</li>
+<li>
+<p>==比较值<br>
+is 比较地址</p>
+</li>
+<li>
+<p>不可变数据: Number（数字）、String（字符串）、Tuple（元组）</p>
+<p>Number：int , float ,bool ,Complex(复数)</p>
+<p>可变数据:List（列表）、Dictionary（字典）、Set（集合）</p>
+</li>
+<li>
+<p>range迭代器</p>
+<p>range(start,stop,step) 左闭右开</p>
+<pre><code>for i in range(0,12,3):
+    print(i)
+    
+    输出为：
+  0
+  3
+  6
+  9
+</code></pre>
+<pre><code>
+特别的，在py中可以遍历列表
+
+```python
+a=['aa','bb','cc']
+for i in range(len(a)):
+    print(i,a[i])
+</code></pre>
+</li>
+<li>
+<p>字符串</p>
+<ul>
+<li>
+<p>切片操作是字符串的</p>
+<p>[start:stop:step]</p>
+<pre><code>str1=&quot;zhengzhou&quot;
+print(str1)
+print(str1[0:6])
+</code></pre>
+</li>
+<li>
+<p>关于转义字符</p>
+<pre><code>#使用斜杠转义
+print(&quot;hello\nzhengzhou&quot;)
+#在字符串前边加r，直接显示原始字符串不转义
+print(r&quot;hello\nzhengzhou&quot;)
+</code></pre>
+</li>
+<li>
+<p>常用方法</p>
+<ul>
+<li>isalnum()  isalpha()  isdigit() islower() isupper()
+<ul>
+<li>isalnum() 字符串至少有一个字符且所有字符都是字母或数字返回True</li>
+<li>isalpha() 字符串至少有一个字符且所有字符都是字母返回True</li>
+<li>isdigit() 字符串至少有一个字符且所有字符都是数字返回True</li>
+</ul>
+</li>
+<li>count()  用于检索指定字符串在另一个字符串中出现的次数，如果检索的字符串不存在，则返回0</li>
+<li>find()：用于检索是否包含指定的子字符串，如果检索的字符串不存在，则返回-1</li>
+<li>upper()方法和lower()    upper大写，lower小写</li>
+<li>strip()方法去除字符串左右两边的空格和特殊字符
+<ul>
+<li>lstripr() 去除字符串左边的空格和特殊字符</li>
+<li>rstripr() 去除字符串左边的空格和特殊字符</li>
+</ul>
+</li>
+<li>len() 返回字符串长度</li>
+<li>join()   pass</li>
+<li>split()  pass</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>函数的定义<br>
+def 函数名（参数）：<br>
+函数体<br>
+return</p>
+<ul>
+<li>与别的语言不同的是，py的函数可以有多个返回值</li>
+</ul>
+</li>
+<li>
+<p>列表（list）</p>
+<ul>
+<li>
+<p>特性</p>
+<p>list是一种有序的集合（打了激素的数组），可以随时添加和删除其中的元素，可以存储任意数据类型的集合</p>
+</li>
+<li>
+<p>常用操作<br>
+list[0,1,2,3,4,5,6]<br>
+list1['a','b','c','d','e','f']<br>
+del list[2] 删除下标为2的元素（删除2）<br>
+两个列表相加就是组合在一起<br>
+字符串可重复输出如print(list[1]*4)<br>
+基本函数</p>
+<ul>
+<li>len(list)列表长度</li>
+<li>max(list)返回列表最大值</li>
+<li>min(list)返回列表最小值</li>
+<li>list(seq)元组转化为列表</li>
+</ul>
+</li>
+<li>
+<p><strong>添加下标</strong></p>
+<p>eg:</p>
+<p>​	# i 可以得到下标，x可以得到值</p>
+<p>​		for i,x in enumerate(list)</p>
+<p>​				print(i,x)</p>
+</li>
+</ul>
+</li>
+<li></li>
+<li>
+<p>基本方法</p>
+<ul>
+<li>
+<p>添加操作</p>
+<ul>
+<li>list.append(obj) 在列表末尾添加，并且将添加的当作一个整体</li>
+</ul>
+</li>
+<li>
+<p>list.extend(obj) 同在列表末尾添加，但是是将添加的东西拆开一个一个放进去</p>
+</li>
+</ul>
+</li>
+<li>
+<p>list.insert(index,obj) 可以指定下标位置进行插入</p>
+</li>
+<li>
+<p>删除操作</p>
+<pre><code>- del  listname[index] 删除对应列表对应下标元素，并且可以切片删除
+</code></pre>
+<ul>
+<li>
+<p>list.pop(index) 删除指定下标元素，若没有指定下标默认删除最后一个</p>
+</li>
+<li>
+<p>list.remove(obj) 删除指定内容，如果出现多次只删除第一个遇到的</p>
+</li>
+<li>
+<p>修改操作</p>
+<ul>
+<li>list[index] = obj 直接指定下标进行修改</li>
+</ul>
+</li>
+<li>
+<p>查询操作</p>
+<ul>
+<li>
+<p>if语句</p>
+<pre><code>namelist=[&quot;小张&quot;,&quot;小王&quot;,&quot;小李&quot;]
+findName= input(&quot;请输入想查询的名字&quot;)
+if findName in namelist:
+    print(&quot;在&quot;)
+else:
+    print(&quot;不在&quot;)
+    
+输出：
+请输入想查询的名字小张
+在
+</code></pre>
+</li>
+<li>
+<p>list.index(obj,start,stop) 指定范围查找，有重复输出元素最早出现时的下标，左闭右开</p>
+</li>
+<li>
+<p>list.count(obj) 统计某个元素出现的次数</p>
+</li>
+</ul>
+</li>
+<li>
+<p>特殊操作</p>
+<ul>
+<li>list.reverse() 反向，直接调用就行，作用于列表本身，返回值为空</li>
+</ul>
+</li>
+<li>
+<p>list.sort() 排序，同上</p>
+</li>
+</ul>
+</li>
+<li>
+<p>list.sort(reverse=True) 反向排序</p>
+<ul>
+<li>
+<p>嵌套</p>
+<ul>
+<li>list[][][ [] , [] , [] , [] ]</li>
+<li>类比二维数组</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>元组 （tuple）</p>
+<ul>
+<li>
+<p>特性</p>
+<p>元组与列表类似，不同之处在于元组的元素不能修改</p>
+<p>列表使用方括号，元组使用小括号</p>
+<p>eg：  tup1=('a','b','c','d')</p>
+<p>​		  tup = ()</p>
+<p>创建只有一个元素的元组，需在元素后边加   '   ， '</p>
+<p>​		  tup2=(50,)</p>
+</li>
+<li>
+<p>元组不允许修改，但可以相加</p>
+<p>tup3=tup1+tup2</p>
+</li>
+<li>
+<p>只能删除整个元组</p>
+</li>
+<li>
+<p>内置函数同列表</p>
+<ul>
+<li>
+<p>多一个</p>
+<p>tuple（seq）</p>
+<p>将列表转换成元组</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>字典（dict）</p>
+<ul>
+<li>
+<p>特性</p>
+<p>d = {key1 : value1, key2 : value2 }</p>
+<p>key是唯一的，重复 最后一个key对会替换前边的</p>
+<p>键必须不可变，所以可以用数字，字符串或元组充当，所以用列表就不行</p>
+<pre><code>dict1={'张三':66,'李四':77,'张三':77}
+#输出整个字典
+print(dict1)
+#输出张三对应的value
+print(dict1['张三'])
+#添加新键对
+dict1['王五']=88
+#删除
+del dict1['张三']
+输出：
+输出整个字典	 {'张三': 77, '李四': 77}
+输出某个人  77
+添加之后	{'张三': 77, '李四': 77, '王五': 88}
+删除张三	{'李四': 77, '王五': 88}
+</code></pre>
+</li>
+<li>
+<p>内置函数同列表</p>
+</li>
+<li>
+<p>方法</p>
+<ul>
+<li>
+<p>增</p>
+<ul>
+<li>dict[&quot;id&quot;]= newID</li>
+</ul>
+</li>
+<li>
+<p>删</p>
+<ul>
+<li>dict.clear()   情空字典内所有元素，但是字典还存在，再次访问输出空字典</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>del dict[key]<br>
+-  del dict	也可以删除整个字典，删除后访问会报错</p>
+<ul>
+<li>
+<p>查</p>
+<ul>
+<li>dict.keys() 访问字典的键</li>
+<li>dict.values() 访问字典的值</li>
+<li>dict.items() 访问字典中所有的项，每个键值对是一个元组</li>
+</ul>
+</li>
+<li>
+<p>dict.copy()   返回一个字典的浅复制</p>
+</li>
+<li>
+<p>dict.get(key) 返回指定键的值，如果值不在字典中返回default值(默认值可以在自己设置)</p>
+<pre><code>dict1={'张三':66,'李四':77,'张三':77}
+print(dict1.get('李五','man'))
+</code></pre>
+</li>
+<li>
+<p>dict.items() 以列表返回可遍历的(键, 值) 元组数组</p>
+</li>
+<li>
+<p>pop() 删除字典给定键 key 所对应的值，返回值为被删除的值。key值必须给出。 否则，返回default值。</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>集合（set）</p>
+<ul>
+<li>set 和 dict 类似，是一组key的集合，不存value，由于key不能重复，所以set中没有重复key。</li>
+<li>set是无序的，重复元素在set中被自动过滤，所以可以用来去重</li>
+</ul>
+</li>
+</ul>
+<p>小结</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"></th>
+<th style="text-align:center">是否有序</th>
+<th style="text-align:center">是否是可变类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><strong>列表[  ]</strong></td>
+<td style="text-align:center">有序</td>
+<td style="text-align:center">可变类型</td>
+</tr>
+<tr>
+<td style="text-align:center">元组(  )</td>
+<td style="text-align:center">有序</td>
+<td style="text-align:center">不可变类型</td>
+</tr>
+<tr>
+<td style="text-align:center"><strong>字典{  }</strong></td>
+<td style="text-align:center">无序</td>
+<td style="text-align:center">key不可变 val可变</td>
+</tr>
+<tr>
+<td style="text-align:center">集合{  }</td>
+<td style="text-align:center">无序</td>
+<td style="text-align:center">可变类型（不重复）</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>
+<p>文件操作</p>
+<ul>
+<li>import os
+<ul>
+<li>os 模块在运维工作中是很常用的一个模块。通过os模块调用系统命令。os模块可以跨平台使用</li>
+</ul>
+</li>
+<li>read（num） 读num个字符</li>
+<li>readline（）读一行</li>
+<li>readlines（） 读所有的，并且放进一个列表，可以用 for 循环遍历</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">r+</th>
+<th>打开一个文件用于读写。文件指针将会放在文件的开头。</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">w</td>
+<td>打开一个文件只用于写入。如果该文件已存在则打开文件，并从开头开始编辑，即原有内容会被删除。如果该文件不存在，创建新文件。</td>
+</tr>
+<tr>
+<td style="text-align:center">w+</td>
+<td>打开一个文件用于读写。如果该文件已存在则打开文件，并从开头开始编辑，即原有内容会被删除。如果该文件不存在，创建新文件。</td>
+</tr>
+<tr>
+<td style="text-align:center">rb+</td>
+<td>以二进制格式打开一个文件用于读写。文件指针将会放在文件的开头。一般用于非文本文件如图片等。</td>
+</tr>
+<tr>
+<td style="text-align:center">wb+</td>
+<td>以二进制格式打开一个文件用于读写。如果该文件已存在则打开文件，并从开头开始编辑，即原有内容会被删除。如果该文件不存在，创建新文件。一般用于非文本文件如图片等。</td>
+</tr>
+<tr>
+<td style="text-align:center">a+</td>
+<td>打开一个文件用于读写。如果该文件已存在，文件指针将会放在文件的结尾。文件打开时会是追加模式。如果该文件不存在，创建新文件用于读写。</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p>捕获异常</p>
+<ul>
+<li>
+<p>try:</p>
+<p>​	code</p>
+<p>except Exception as result:</p>
+<p>​	print(result)</p>
+</li>
+</ul>
+</li>
+<li>
+<p>urllib 补充</p>
+<ul>
+<li>
+<p>（获取一个get请求）直接整一个网页，用下边代码得到百度的源码，放到html文件里，可以直接打开这个网页（不伪装只能进去百度）</p>
+<ul>
+<li>
+<pre><code>import urllib.request
+
+response = urllib.request.urlopen(&quot;http://www.baidu.com&quot;)
+print(response.read().decode('utf-8')) #对获取到的网页源码进行utf-8解码
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>（获取一个post请求）用于模拟登录</p>
+<ul>
+<li>
+<pre><code>import urllib.parse
+data = bytes(urllib.parse.urlencode({&quot;hello&quot;:&quot;world&quot;}),encoding=&quot;utf-8&quot;)
+response = urllib.request.urlopen(&quot;http://httpbin.org/post&quot;,data=data)
+print(response.read().decode(&quot;utf-8&quot;))
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>伪装成一个浏览器进行访问网站（一定要有header）（大部分网站必须伪装才能进去）</p>
+<ul>
+<li>
+<pre><code>url = &quot;http://www.douban.com&quot;
+headers = {
+&quot;User-Agent&quot;:&quot; Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36&quot;
+}
+req = urllib.request.Request(url=url,headers=headers)
+response = urllib.request.urlopen(req)
+print(response.read().decode(&quot;utf-8&quot;))
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+<h1 id="建议以后补习html和css"><em><strong>建议以后补习html和css</strong></em></h1>
+</li>
+<li>
+<p>beautifulsoup4补充</p>
+<ul>
+<li>
+<p>进行操作的html文档内容</p>
+<ul>
+<li>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta content=&quot;text/html;charset=utf-8&quot; http-equiv=&quot;content-type&quot; /&gt;
+    &lt;meta content=&quot;IE=Edge&quot; http-equiv=&quot;X-UA-Compatible&quot; /&gt;
+    &lt;meta content=&quot;always&quot; name=&quot;referrer&quot; /&gt;
+    &lt;link href=&quot;https://ss1.bdstatic.com/5eN1bjq8AAUYm2zgoY3K/r/www/cache/bdorz/baidu.min.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;
+    &lt;title&gt;百度一下，你就知道 &lt;/title&gt;
+&lt;/head&gt;
+&lt;body link=&quot;#0000cc&quot;&gt;
+  &lt;div id=&quot;wrapper&quot;&gt;
+    &lt;div id=&quot;head&quot;&gt;
+        &lt;div class=&quot;head_wrapper&quot;&gt;
+          &lt;div id=&quot;u1&quot;&gt;
+            &lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;&lt;!--新闻--&gt;&lt;/a&gt;
+            &lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;新闻&lt;/a&gt;
+            &lt;a class=&quot;mnav&quot; href=&quot;https://www.hao123.com&quot; name=&quot;tj_trhao123&quot;&gt;hao123&lt;/a&gt;
+            &lt;a class=&quot;mnav&quot; href=&quot;http://map.baidu.com&quot; name=&quot;tj_trmap&quot;&gt;地图&lt;/a&gt;
+            &lt;a class=&quot;mnav&quot; href=&quot;http://v.baidu.com&quot; name=&quot;tj_trvideo&quot;&gt;视频&lt;/a&gt;
+            &lt;a class=&quot;mnav&quot; href=&quot;http://tieba.baidu.com&quot; name=&quot;tj_trtieba&quot;&gt;贴吧&lt;/a&gt;
+            &lt;a class=&quot;bri&quot; href=&quot;//www.baidu.com/more/&quot; name=&quot;tj_briicon&quot; style=&quot;display: block;&quot;&gt;更多产品 &lt;/a&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>tag  拿到标签及其内容:重复出现只能拿到第一个内容</p>
+<ul>
+<li>
+<pre><code>from bs4 import BeautifulSoup
+
+file=open(&quot;./baidu.html&quot;,&quot;rb&quot;)
+html = file.read()
+bs=BeautifulSoup(html,&quot;html.parser&quot;)
+print(bs.head)
+
+输出结果:
+&lt;title&gt;百度一下，你就知道 &lt;/title&gt;
+&lt;class 'bs4.element.Tag'&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>NavigableString 标签里的内容（可以理解为字符串）</p>
+<ul>
+<li>
+<pre><code>from bs4 import BeautifulSoup
+file=open(&quot;./baidu.html&quot;,&quot;rb&quot;)
+html = file.read()
+bs=BeautifulSoup(html,&quot;html.parser&quot;)
+print(bs.title)
+print(bs.title.string)
+print(type(bs.title.string))
+print(bs.a.attrs)  #拿到标签里的所有属性(attribute)，返回类型为字典
+输出结果：
+&lt;title&gt;百度一下，你就知道 &lt;/title&gt;
+百度一下，你就知道 
+&lt;class 'bs4.element.NavigableString'&gt;
+{'class': ['mnav'], 'href': 'http://news.baidu.com', 'name': 'tj_trnews'}
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>Beautifulsoup</p>
+<ul>
+<li>
+<pre><code>print(type(bs)) #打印bs的类型
+
+输出为:
+&lt;class 'bs4.BeautifulSoup'&gt;   #bs即为整个html文档，直接打印bs可输出整个文档内容
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>comment</p>
+</li>
+<li>
+<p>文档的遍历</p>
+<ul>
+<li>
+<p>contents：#获取Tag的所有子节点，返回一个list</p>
+<pre><code>print(bs.head.contents) #获取head(Tag)的所有子节点，返回一个list
+
+这个的输出为:
+['\n', &lt;meta content=&quot;text/html;charset=utf-8&quot; http-equiv=&quot;content-type&quot;/&gt;, '\n', &lt;meta content=&quot;IE=Edge&quot; http-equiv=&quot;X-UA-Compatible&quot;/&gt;, '\n', &lt;meta content=&quot;always&quot; name=&quot;referrer&quot;/&gt;, '\n', &lt;link href=&quot;https://ss1.bdstatic.com/5eN1bjq8AAUYm2zgoY3K/r/www/cache/bdorz/baidu.min.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot;/&gt;, '\n', &lt;title&gt;百度一下，你就知道 &lt;/title&gt;, '\n']
+
+
+
+</code></pre>
+</li>
+<li>
+<p>children：获取Tag的所有子节点，返回一个生成器</p>
+<ul>
+<li>
+<pre><code>for child in bs.body.children:
+    print(child)
+    
+输出为:
+&lt;div id=&quot;wrapper&quot;&gt;
+&lt;div id=&quot;head&quot;&gt;
+&lt;div class=&quot;head_wrapper&quot;&gt;
+&lt;div id=&quot;u1&quot;&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;&lt;!--新闻--&gt;&lt;/a&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;新闻&lt;/a&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;https://www.hao123.com&quot; name=&quot;tj_trhao123&quot;&gt;hao123&lt;/a&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;http://map.baidu.com&quot; name=&quot;tj_trmap&quot;&gt;地图&lt;/a&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;http://v.baidu.com&quot; name=&quot;tj_trvideo&quot;&gt;视频&lt;/a&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;http://tieba.baidu.com&quot; name=&quot;tj_trtieba&quot;&gt;贴吧&lt;/a&gt;
+&lt;a class=&quot;bri&quot; href=&quot;//www.baidu.com/more/&quot; name=&quot;tj_briicon&quot; style=&quot;display: block;&quot;&gt;更多产品 &lt;/a&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>文档的搜索</p>
+<ul>
+<li>
+<p>find_all(&quot;Tag&quot;)	#字符串过滤：会查找与字符串完全匹配的内容，limit可以限制输出的个数</p>
+<ul>
+<li>
+<pre><code>t_list = bs.find_all(&quot;a&quot;)
+print(t_list)
+print(end='\n')
+t_list = bs.find_all(&quot;a&quot;,limit=3)
+print(t_list)
+输出为:
+[&lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;&lt;!--新闻--&gt;&lt;/a&gt;, &lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;新闻&lt;/a&gt;, &lt;a class=&quot;mnav&quot; href=&quot;https://www.hao123.com&quot; name=&quot;tj_trhao123&quot;&gt;hao123&lt;/a&gt;, &lt;a class=&quot;mnav&quot; href=&quot;http://map.baidu.com&quot; name=&quot;tj_trmap&quot;&gt;地图&lt;/a&gt;, &lt;a class=&quot;mnav&quot; href=&quot;http://v.baidu.com&quot; name=&quot;tj_trvideo&quot;&gt;视频&lt;/a&gt;, &lt;a class=&quot;mnav&quot; href=&quot;http://tieba.baidu.com&quot; name=&quot;tj_trtieba&quot;&gt;贴吧&lt;/a&gt;, &lt;a class=&quot;bri&quot; href=&quot;//www.baidu.com/more/&quot; name=&quot;tj_briicon&quot; style=&quot;display: block;&quot;&gt;更多产品 &lt;/a&gt;]
+
+[&lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;&lt;!--新闻--&gt;&lt;/a&gt;, &lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;新闻&lt;/a&gt;, &lt;a class=&quot;mnav&quot; href=&quot;https://www.hao123.com&quot; name=&quot;tj_trhao123&quot;&gt;hao123&lt;/a&gt;]
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>正则表达式搜索:使用search()方法来匹配内容  re库（暂时pass，下边会有补充）</p>
+<ul>
+<li>
+<pre><code>t_list = bs.find_all(re.compile(&quot;a&quot;))
+print(t_list)
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>函数搜索 传入一个函数，根据函数的要求进行搜索</p>
+<ul>
+<li>
+<pre><code>def name_is_exists(tag):
+    return tag.has_attr(&quot;name&quot;) #这个可以返回所有带name的内容
+
+t_list = bs.find_all(name_is_exists)
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>参数  find_all里边可以直接放一个参数进行搜索</p>
+<ul>
+<li>
+<pre><code>输出所有存在href=&quot;http://news.baidu.com&quot;的内容
+t_list = bs.find_all(href=&quot;http://news.baidu.com&quot;)
+print(t_list)
+
+输出为:
+[&lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;&lt;!--新闻--&gt;&lt;/a&gt;, &lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;新闻&lt;/a&gt;]
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>text参数 查找包含特定文本的内容（标签里的字符串），返回list</p>
+<ul>
+<li>
+<pre><code>t_list = bs.find_all(text=re.compile(&quot;\d&quot;)) #查找所有包含数字的字符串
+for i in t_list:
+    print(i)
+    
+输出为:
+hao123
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>css选择器   #可以通过各种方式查找，例如类名，标签等,还可以直接找子标签的子标签</p>
+<ul>
+<li>
+<pre><code>t_list = bs.select('title')  #根据标签进行查找
+    print(i)
+print(end=&quot;\n&quot;)
+t_list = bs.select(&quot;.mnav&quot;)  #根据类名进行查找
+for i in t_list:
+    print(i)
+print(end=&quot;\n&quot;)   
+t_list = bs.select(&quot;head &gt; title&quot;)
+for i in t_list:
+    print(i)
+输出为:
+&lt;title&gt;百度一下，你就知道 &lt;/title&gt;
+
+&lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;&lt;!--新闻--&gt;&lt;/a&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;http://news.baidu.com&quot; name=&quot;tj_trnews&quot;&gt;新闻&lt;/a&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;https://www.hao123.com&quot; name=&quot;tj_trhao123&quot;&gt;hao123&lt;/a&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;http://map.baidu.com&quot; name=&quot;tj_trmap&quot;&gt;地图&lt;/a&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;http://v.baidu.com&quot; name=&quot;tj_trvideo&quot;&gt;视频&lt;/a&gt;
+&lt;a class=&quot;mnav&quot; href=&quot;http://tieba.baidu.com&quot; name=&quot;tj_trtieba&quot;&gt;贴吧&lt;/a&gt;
+
+&lt;title&gt;百度一下，你就知道 &lt;/title&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>补充re模块(正则表达式:字符串模式（判断字符串是否符合一定的标准）)</p>
+<ul>
+<li>
+<p>常用操作符（1）</p>
+<ul>
+<li>
+<table>
+<thead>
+<tr>
+<th>操作符</th>
+<th>说明</th>
+<th>实例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>.</td>
+<td>表示任何单个字符</td>
+<td></td>
+</tr>
+<tr>
+<td>[     ]</td>
+<td>字符集，对单个字符给出取值范围</td>
+<td>[abc]表示a、b、c，[a-z]表示a-z单个字符</td>
+</tr>
+<tr>
+<td>[^   ]</td>
+<td>非字符集，对单个字符给出排除范围</td>
+<td>[^abc]表示非a或b或c的单个字符</td>
+</tr>
+<tr>
+<td>*</td>
+<td><strong>前一个字符</strong>0次或者无限次扩展</td>
+<td>abc*表示ab、abc、abcc、abccc等</td>
+</tr>
+<tr>
+<td>+</td>
+<td><strong>前一个字符</strong>1次或者无限次扩展</td>
+<td>abc+表示abc、abcc、abccc等</td>
+</tr>
+<tr>
+<td>?</td>
+<td><strong>前一个字符</strong> 0次或1次扩展</td>
+<td>abc？表示ab、abc</td>
+</tr>
+<tr>
+<td>|</td>
+<td>左右表达式任意一个</td>
+<td>abc|def 表示 abc、def</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</li>
+<li>
+<p>常用的操作符（2）</p>
+<ul>
+<li>
+<table>
+<thead>
+<tr>
+<th>操作符</th>
+<th>说明</th>
+<th>实例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>{m}</td>
+<td>扩展<strong>前一个字符</strong>m次</td>
+<td>ab{2}c表示abbc</td>
+</tr>
+<tr>
+<td>{m,n}</td>
+<td>扩展<strong>前一个字符</strong>m至n次（含n）</td>
+<td>ab{1,2}c表示abc、abbc</td>
+</tr>
+<tr>
+<td>^</td>
+<td>匹配字符串开头</td>
+<td>^abc表示abc且在一个字符串的开头</td>
+</tr>
+<tr>
+<td>$</td>
+<td>匹配字符串结尾</td>
+<td>$abc表示abc且在一个字符串的结尾</td>
+</tr>
+<tr>
+<td>(    )</td>
+<td>分组标记，内部只能用|操作符</td>
+<td>(abc)表示abc,(abc|def)表示abc、def</td>
+</tr>
+<tr>
+<td>\d</td>
+<td>数字，等价于[0-9]</td>
+<td></td>
+</tr>
+<tr>
+<td>\w</td>
+<td>单词字符，等价于[a-zA-z0-9_]</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p>Search() 方法  查找规定字符串出现的位置</p>
+<pre><code>pat = re.compile(&quot;AA&quot;) #此处的AA是正则表达式，用于验证其他字符串
+m=pat.search(&quot;aaaA&quot;) #search 字符串是被校验的内容，只能找到正则表达式第一次出现的位置，若没找到输出none
+print(m)
+m=pat.search(&quot;aaaAA&quot;)
+print(m)
+#可以简写
+m = re.search(&quot;AA&quot;,&quot;aaaAA&quot;)
+print(m)
+输出:
+None
+&lt;re.Match object; span=(3, 5), match='AA'&gt;
+&lt;re.Match object; span=(3, 5), match='AA'&gt;
+</code></pre>
+</li>
+<li>
+<p>findall()方法  查找规定字符串</p>
+<ul>
+<li>
+<pre><code>print(re.findall(&quot;a&quot;,&quot;ASDaDFGAa&quot;))  #前边字符串是规则
+print(re.findall(&quot;[A-Z]&quot;,&quot;ASDaDFGAa&quot;))
+print(re.findall(&quot;[A-Z]+&quot;,&quot;ASDaDFGAa&quot;))
+
+输出：
+['a', 'a']
+['A', 'S', 'D', 'D', 'F', 'G', 'A']
+['ASD', 'DFGA']
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>sub()方法 替换 sub(参数1，参数2，参数3)  在参数3中用参数2替换参数1</p>
+<ul>
+<li>
+<pre><code>print(re.sub(&quot;a&quot;,&quot;A&quot;,&quot;aBCDEFGFEDCBa&quot;))
+
+输出结果:
+ABCDEFGFEDCBA
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>建议在正则表达式中，被比较的字符串前边加上r，不用担心转义字符的问题</p>
+<ul>
+<li>
+<pre><code>a = &quot;\aabb-\'&quot;
+b = r&quot;\aabb-\'&quot;
+print(a)
+print(b)
+
+输出结果：
+?abb-'
+\aabb-\'
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<h1 id="尝试爬取豆瓣的top250">尝试爬取豆瓣的top250</h1>
+<ul>
+<li>
+<p>伪装成浏览器访问豆瓣top250的网址并得到一个html文件（获取数据）</p>
+<ul>
+<li>
+<pre><code>def askURL(url):
+    head = {
+        &quot;User-Agent&quot;: &quot; Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36&quot;
+    }
+
+    request = urllib.request.Request(url,headers=head)
+    html = &quot;&quot;
+    try:
+        response = urllib.request.urlopen(request)
+        html = response.read().decode(&quot;utf-8&quot;)
+       # print(html)
+    except urllib.error.URLError as e:
+        if hasattr(e,&quot;code&quot;):
+            print(e.code)
+        if hasattr(e,&quot;reason&quot;):
+            print(e.reason)
+    return html
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>添加正则表达式规则（标签解析）</p>
+<ul>
+<li>
+<pre><code>#影片链接
+findLink = re.compile(r'&lt;a href=&quot;(.*?)&quot;&gt;')
+#影片图片
+findImgsrc = re.compile(r'img,*src=&quot;(.*?)&quot;',re.S)
+#影片片名
+findtitle = re.compile(r'&lt;span class=&quot;title&quot;&gt;(.*)&lt;/span&gt;')
+#评分
+findRating = re.compile(r'&lt;span class=&quot;rating_num&quot; property=&quot;v:average&quot;&gt;(.*)&lt;/span&gt;')
+#评价
+findJudge = re.compile(r'&lt;span&gt;(\d*)人评价&lt;/span&gt;')
+#概述
+fingInq = re.compile(r'&lt;span class=&quot;inq&quot;&gt;(.*)&lt;/span&gt;')
+#演员等信息
+findbd = re.compile(r'&lt;p class=&quot;&quot;&gt;(.*) &lt;/p&gt;',re.S)
+#爬取网页
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>添加正则表达式规则后将所有信息保存到一个datalist列表里</p>
+<ul>
+<li>
+<pre><code>def getData(baseurl):
+    datalist= []
+    for i in range(0,10):           #调用获取页面信息的函数
+        url = baseurl + str(i*25)
+        html = askURL(url)         #保存获取到的网页源码
+
+        #逐一解析数据
+        soup = BeautifulSoup(html,&quot;html.parser&quot;)
+        for item in soup.find_all('div',class_=&quot;item&quot;):
+#             print(item)
+            data = []
+            item = str(item)
+
+
+            link = re.findall(findLink,item)[0]         #re库用来通过正则表达式查找指定的字符串
+            data.append(link)                           #
+
+            imgSrc = re.findall(findImgSrc,item)[0]
+            data.append(imgSrc)
+
+            titles = re.findall(findTitle,item)         #片名可能只有一共一个中文名
+            if (len(titles)==2):
+                ctitle=titles[0]                #中国名
+                data.append(ctitle)
+                otitle = titles[1].replace(&quot;/&quot;,&quot;&quot;)      #外国名
+                data.append(otitle)
+            else:
+                data.append(titles[0])
+                data.append(&quot; &quot;)            #为了对齐没有外国名也得留空位
+            rating = re.findall(findRating,item)[0]
+            data.append(rating)
+
+            judgeNum = re.findall(findJudge,item)[0]
+            data.append(judgeNum)
+
+            inq=re.findall(findInq,item)
+            if len(inq)!= 0:
+                inq=inq[0].replace(&quot;。&quot;,&quot;&quot;)
+                data.append(inq)
+            else:
+                data.append(&quot; &quot;)
+
+            bd=re.findall(findBd,item)[0]
+            bd=re.sub('&lt;br(\s+)?/&gt;(\s+)?',&quot; &quot;,bd)   #去掉&lt;br/&gt;
+            bd=re.sub(&quot;/&quot;,&quot; &quot;,bd)           #替换
+            data.append(bd.strip())         #去掉前后的空格
+
+            datalist.append(data)
+    # # 2.解析数据
+
+    return datalist
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>保存数据到excel里（xlwt库）</p>
+<ul>
+<li>
+<pre><code>book = xlwt.Workbook(encoding=&quot;utf-8&quot;,style_compression=0)  # 创建book对象
+sheet = book.add_sheet(&quot;豆瓣电影top250&quot;,cell_overwrite_ok=True)  # 创建工作表
+col = (&quot;电影详情链接&quot;,&quot;图片链接&quot;,&quot;影片中文名&quot;,&quot;影片外国名&quot;,&quot;评分&quot;,&quot;评价数&quot;,&quot;概述&quot;,&quot;相关信息&quot;)
+for i in range(0,8):
+    sheet.write(0,i,col[i])
+for i in range(0,250):
+    print(&quot;第%d条&quot;%(i+1))
+    data = datalist[i]
+    for j in range(0,8):
+        sheet.write(i+1,j,data[j])    #数据
+book.save(savepath)
+</code></pre>
+</li>
+<li>
+<figure data-type="image" tabindex="1"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20210117132524965.png" alt="image-20210117132524965" loading="lazy"></figure>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>数据可视化</p>
+<ul>
+<li>
+<p>首页+列表页制作，网上下载一个模板，用F12进行查询修改，保留自己想要的内容，删除自己不需要的内容，利用html列表把数据打印到网页上</p>
+<ul>
+<li>
+<pre><code>&lt;table class=&quot;table table-striped&quot;&gt;
+    &lt;tr&gt;
+
+        &lt;td&gt;排名&lt;/td&gt;
+        &lt;td&gt;电影中文名称&lt;/td&gt;
+        &lt;td&gt;电影外国名称&lt;/td&gt;
+        &lt;td&gt;评分&lt;/td&gt;
+        &lt;td&gt;评价人数&lt;/td&gt;
+        &lt;td&gt;概述&lt;/td&gt;
+        &lt;td&gt;其他信息&lt;/td&gt;
+
+    &lt;/tr&gt;
+    {%  for movie in movies %}
+    &lt;tr&gt;
+        &lt;td&gt;{{ movie[0] }}&lt;/td&gt;
+        &lt;td&gt;
+            &lt;a href=&quot;{{ movie[1] }}&quot; target=&quot;_blank&quot;&gt;{{ movie[3] }}&lt;/a&gt;&lt;/td&gt;
+
+        &lt;td&gt;{{ movie[4] }}&lt;/td&gt;
+        &lt;td&gt;{{ movie[5] }}&lt;/td&gt;
+        &lt;td&gt;{{ movie[6] }}&lt;/td&gt;
+        &lt;td&gt;{{ movie[7] }}&lt;/td&gt;
+        &lt;td&gt;{{ movie[8] }}&lt;/td&gt;
+
+    &lt;/tr&gt;
+        {% endfor %}
+&lt;/table&gt;
+</code></pre>
+</li>
+<li>
+<p>效果如下</p>
+<ul>
+<li><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20210122115852214.png" alt="image-20210122115852214" loading="lazy"></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>利用Echarts 制作评分页进行数据可视化，在Echarts上找到想要的模板直接修改，修改完直接把JavaScript代码复制到对应地方，再根据自己的数据进行修改</p>
+<ul>
+<li>
+<pre><code>&lt;script type=&quot;text/javascript&quot;&gt;
+var dom = document.getElementById(&quot;main&quot;);
+var myChart = echarts.init(dom);
+var app = {};
+option = null;
+option = {
+
+    color:['#3398DB'],
+    tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+            type: 'shadow'
+        }
+    },
+    grid: {
+        left: '3%',
+        right:'4%',
+        bottom:'3%',
+        containLabel:true
+    },
+    xAxis: {
+        type: 'category',
+        data:{{ score }}
+            {#['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun','999']#}
+    },
+    yAxis: {
+        type: 'value'
+    },
+    series: [{
+
+        data:{{ num }},
+        &lt;!-- [120, 20, 150, 80, 70, 110, 130,200],--&gt;
+        barWidth:'60%',
+        type:'bar'
+    }]
+};
+;
+if (option &amp;&amp; typeof option === &quot;object&quot;) {
+    myChart.setOption(option, true);
+}
+       &lt;/script&gt;
+</code></pre>
+</li>
+<li>
+<p>效果</p>
+<ul>
+<li><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20210122115923066.png" alt="image-20210122115923066" loading="lazy"></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<h1 id="数据库">数据库</h1>
+<ul>
+<li>
+<p>打开数据库</p>
+<pre><code>import  sqlite3
+
+conn = sqlite3.connect(&quot;test.db&quot;) 	#打开或创建数据库文件
+</code></pre>
+</li>
+<li>
+<p>建表</p>
+<pre><code>c =conn.cursor()		#获取游标
+
+sql = '''
+    create table company
+    (id int primary key not null,
+    name text not null,
+    age int not null,
+    address char(50),
+    salary real);
+
+'''
+
+c.execute(sql)		#执行sql语句
+conn.commit()		#提交数据库连接
+conn.close()
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<h1 id="flask">flask</h1>
+<ul>
+<li>
+<h2 id="1从hello-world开始">1.从hello world开始</h2>
+<ul>
+<li>
+<pre><code>#从flask包里导入Flask框架
+from flask import Flask
+#把Flask框架导入app里
+app = Flask(__name__)
+
+#路由解析，通过用户访问的路径，匹配相应的函数，通过用户访问这个'/'，返回一个信息
+@app.route('/')
+def hello_world():
+    return 'hello world'
+
+
+if __name__ == '__main__':
+    app.run()
+    
+    
+#运行可以生成一个网址，网址输出hello world  
+此程序的运行结果：
+FLASK_APP = app.py
+FLASK_ENV = development
+FLASK_DEBUG = 0
+In folder D:/PycharmProjects/flask_demo
+D:\PycharmProjects\pythonProject2\cechi\Scripts\python.exe -m flask run
+ * Serving Flask app &quot;app.py&quot;
+ * Environment: development
+ * Debug mode: off
+ * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+127.0.0.1 - - [19/Jan/2021 10:14:46] &quot;GET / HTTP/1.1&quot; 200 -
+
+</code></pre>
+</li>
+<li>
+<p>正常情况下修改需要结束掉重新运行，但是可以开启debug模式进行直接修改，并且debug模式可以看到错误出在哪个位置</p>
+</li>
+<li>
+<p>主要关注route里和return的东西，route是根据访问方式，通过这个方式访问就可得return的东西</p>
+<ul>
+<li>
+<p>eg：修改route里边的访问方式（通过访问路径获取用户输入的字符串参数）</p>
+<ul>
+<li>
+<pre><code>@app.route('/user/&lt;name&gt;')
+def hello_world(name):
+    return 'hello,' + name
+#原来网址返回hello world，修改之后变成hello，&lt;name&gt;
+#修改一下http://127.0.0.1:5000/user/张三
+网页输出:hello,张三
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>可以定义多个函数，根据不同的访问类型自动匹配返回值</p>
+</li>
+<li>
+<p>eg：通过访问路径获取用户输入的整形参数（还可以获取float类型）</p>
+<ul>
+<li>
+<pre><code>#在刚才的代码中间加上个新函数
+@app.route('/user/&lt;int:id&gt;')
+def hello_world1(id):
+    return 'hello,id为%d号的用户'%id
+#修改一下http://127.0.0.1:5000/user/123
+网页输出:hello,id为123号的用户
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>路由路径不能重复，用户通过唯一路径访问特定函数</strong></p>
+<ul>
+<li>
+<p>访问路由的方式是用werkzeug包，而return一般用jinja2</p>
+</li>
+<li>
+<p>返回给用户渲染后的页面，要从flark引入render_template包</p>
+<pre><code>#返回给用户渲染后的网页文件
+@app.route('/')   #route里边是访问路径
+def index():
+    return render_template(&quot;iu.html&quot;) #这个里边是文件的保存路径
+#在iu.html里写了欢迎光临
+网页输出:你好,欢迎光临
+</code></pre>
+</li>
+<li>
+<p>向页面传递一个变量（拿返回今天的时间举例）  要引入提前datetime包</p>
+<ul>
+<li>
+<pre><code>import datetime
+@app.route('/')
+def index():
+    time = datetime.date.today()
+    name = ['小张','小李','小王','小刘']
+    return render_template(&quot;iu.html&quot;,var=time，list = name)
+#要把var放到iu.html里，方法如下  {{ var }}  ，两个花括号，里边放上变量名
+输出结果:今天是2021-01-19,你好,欢迎光临
+</code></pre>
+</li>
+<li>
+<p>在html文件写控制语句的方法（for循环之类的）要用如下格式</p>
+<pre><code>今天值班的有:&lt;br/&gt;
+{% for data in list  %}  &lt;!--用大括号和百分号括起来的是控制结构，还有if&gt;
+    &lt;li&gt;{{ data }}&lt;/li&gt;
+{% endfor  %}
+</code></pre>
+</li>
+<li>
+<p>打印表格和迭代（html）     <strong>补html</strong></p>
+<ul>
+<li>
+<pre><code>任务&lt;br/&gt;
+    &lt;table border=&quot;1&quot;&gt; 		&lt;!-- 打印表格&gt;
+       {% for key,value in task.items() %} &lt;!--字典类型遍历方法&gt;
+            &lt;tr&gt;
+                 &lt;td&gt;{{key}}&lt;/td&gt;
+                 &lt;td&gt;{{value}} &lt;/td&gt;
+            &lt;/tr&gt;
+
+        {% endfor %}
+    &lt;/table&gt;	&lt;!-- 打印表格&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>表单提交功能</p>
+<ul>
+<li>
+<pre><code>#表单提交
+@app.route(&quot;/test/register&quot;)#访问方式
+def register():
+    return render_template(&quot;test/register.html&quot;) #新建一个html文件
+
+
+</code></pre>
+</li>
+<li>
+<p>新建的html文件<body>里边的东西</p>
+<pre><code>&lt;body&gt;
+&lt;!--action是访问的路径，method是访问的方式--&gt;
+&lt;form action=&quot;{{url_for('result')}}&quot; method=&quot;post&quot;&gt;此处url_for能动态获得当前的网址
+    &lt;p&gt;姓名:&lt;input type=&quot;text&quot; name=&quot;姓名&quot;&gt;&lt;/p&gt;
+    &lt;p&gt;年龄:&lt;input type=&quot;text&quot; name=&quot;年龄&quot;&gt;&lt;/p&gt;
+    &lt;p&gt;性别:&lt;input type=&quot;text&quot; name=&quot;性别&quot;&gt;&lt;/p&gt;
+    &lt;p&gt;地址:&lt;input type=&quot;text&quot; name=&quot;地址&quot;&gt;&lt;/p&gt;
+    &lt;p&gt;&lt;input type=&quot;submit&quot; value=&quot;提交&quot;&gt;&lt;/p&gt;
+&lt;/form&gt;
+</code></pre>
+</li>
+<li>
+<pre><code>#对result访问方式的操作（提交后的内容）
+@app.route(&quot;/result&quot;,methods=['post','get'])
+def result():
+ if request.method=='POST':	#此处访问方式要大写
+   result = request.form  #result里边存输入的内容
+   return render_template(&quot;test/result.html&quot;,result=result)
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<h1 id="html超文本标记语言">HTML（超文本<em><strong>标记语言</strong></em>）</h1>
+<ul>
+<li>
+<p>根据W3C标准分为</p>
+<ul>
+<li>HTML用于描述页面的结构</li>
+<li>CSS用于控制页面中元素的样式</li>
+<li>JavaScript用于响应用户操作</li>
+</ul>
+</li>
+<li>
+<h2 id="html标签">HTML标签</h2>
+<ul>
+<li>HTML标签是由<strong>尖括号</strong>包围的关键词如<html></li>
+<li>HTML标签通常<strong>成对出现</strong>的，如 <b>  和 	</b>（是有东西的）</li>
+<li>标签对中第一个标签为 <b>开始标签</b>,第二个标签是<strong>结束标签</strong></li>
+<li>开始和结束标签也被称为开放标签和闭合标签</li>
+</ul>
+</li>
+<li>
+<p>HTML文档 = 网页</p>
+<ul>
+<li>
+<p>Web 浏览器的作用是读取 HTML 文档，并以网页的形式显示出它们。浏览器不会显示 HTML 标签，而是使用标签来解释页面的内容：</p>
+<ul>
+<li>
+<pre><code class="language-html">&lt;html&gt;
+&lt;body&gt;
+
+&lt;h1&gt;我的第一个标题&lt;/h1&gt;
+
+&lt;p&gt;我的第一个段落。&lt;/p&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<ul>
+<li></li>
+</ul>
+<blockquote>
+<html> 与 </html> 之间的文本描述网页
+<body> 与 </body> 之间的文本是可见的页面内容	
+<!--<h1> 与 </h1> 之间的文本被显示为标题 范围<h1>-<h6>-->
+<h1> 与 </h1> 之间的文本被显示为标题
+<h1 align="center"> 拥有关于对齐方式的附加信息。
+<!--<p> 与 </p> 之间的文本被显示为段落>  -->
+<p> 与 </p> 之间的文本被显示为段落>
+<!--<a href="http://www.w3school.com.cn">'网页名字'</a>-->（在href属性中指定链接的地址）
+<p><a href="http://www.w3school.com.cn">'w3school'</a></p>
+<p>HTML 图像是通过 <img> 标签进行定义的。</p>
+<p>图像的名称和尺寸是以属性的形式提供的。</p>
+<pre><code>&lt;img src=&quot;w3school.jpg&quot; width=&quot;104&quot; height=&quot;142&quot; /&gt;
+</code></pre>
+<p><font color = red  size='6' > 啊巴巴</font> 用来调整字体属性，不能乱编</p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li>
+<h2 id="html-元素">HTML 元素</h2>
+<ul>
+<li>HTML 元素指的是从开始标签（start tag）到结束标签（end tag）的所有代码。</li>
+</ul>
+</li>
+<li>
+<h2 id="html-元素语法">HTML 元素语法</h2>
+<ul>
+<li>HTML 元素以<em>开始标签</em>起始</li>
+<li>HTML 元素以<em>结束标签</em>终止</li>
+<li><em>元素的内容</em>是开始标签与结束标签之间的内容</li>
+<li>某些 HTML 元素具有<em>空内容（empty content）</em></li>
+<li>空元素<em>在开始标签中进行关闭</em>（以开始标签的结束而结束）</li>
+<li>大多数 HTML 元素可拥有<em>属性</em></li>
+</ul>
+</li>
+<li>
+<h3 id="html-文档实例">HTML 文档实例</h3>
+<ul>
+<li>
+<pre><code>&lt;html&gt;
+
+&lt;body&gt;
+&lt;p&gt;This is my first paragraph.&lt;/p&gt;
+&lt;/body&gt;
+
+&lt;/html&gt;
+</code></pre>
+</li>
+<li>
+<p>段落
+</li>
+<li>
+<h3 id="body-元素定义了-html-文档的主体"><body> 元素定义了 HTML 文档的主体。</h3>
+<ul>
+<li>
+<body style ="background-color:yellow"> 拥有关于背景颜色的附加信息。(style 淘汰了bgcolor)
+</li>
+</ul>
+</li>
+<li>
+<html> 元素定义了整个 HTML 文档</html>。
+</li>
+<li>
+<p><br>换行</p>
+</li>
+<li>
+<p>HTML标签对大小写不敏感但是推荐用小写（W3C可能强制要求小写）</p>
+</li>
+</ul>
+</li>
+<li>
+<h2 id="始终为属性值加引号">始终为属性值加引号</h2>
+</li>
+<li>
+<hr> 定义水平线
+</li>
+<li>
+<p>HTML 字体颜色和尺寸</p>
+<ul>
+<li>
+<p>font-family、color 以及 font-size 属性分别定义元素中文本的字体系列、颜色和字体尺寸：</p>
+</li>
+<li>
+<pre><code>&lt;h1 style=&quot;font-family:verdana&quot;&gt;A heading&lt;/h1&gt;
+&lt;p style=&quot;font-family:arial;color:red;font-size:20px;&quot;&gt;A paragraph.&lt;/p&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>文本对齐</p>
+<ul>
+<li>
+<p>text-align 属性规定了元素中文本的水平对齐方式</p>
+</li>
+<li>
+<pre><code>&lt;h1 style=&quot;text-align:center&quot;&gt;This is a heading&lt;/h1&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>文本格式化</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<figure data-type="image" tabindex="4"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20210119205425667.png" alt="image-20210119205425667" loading="lazy"></figure>
+<ul>
+<li>
+<p>HTML引用</p>
+</li>
+<li>
+<figure data-type="image" tabindex="5"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20210119211523184.png" alt="image-20210119211523184" loading="lazy"></figure>
+</li>
+<li>
+<p>HTML计算机代码</p>
+<ul>
+<li>
+<figure data-type="image" tabindex="6"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20210119211854537.png" alt="image-20210119211854537" loading="lazy"></figure>
+</li>
+<li>
+<p>特别的，若想保留代码原来的缩进，要<code><pre>中间加上</pre></code></p>
+<p>​	<code></p>
+<pre>
+var person = {
+    firstName:"Bill",
+    lastName:"Gates",
+    age:50,
+    eyeColor:"blue"
+}
+</pre>
+</code>
+</li>
+</ul>
+</li>
+<li>
+<p>注释</p>
+<ul>
+<li>
+<!-- 这里是注释的内容 -->
+</li>
+<li>
+<p>name 属性规定锚（anchor）的名称。（类比目录索引）</p>
+<ul>
+<li>语法：</li>
+</ul>
+<pre><code>&lt;a name=&quot;label&quot;&gt;锚（显示在页面上的文本）&lt;/a&gt;
+</code></pre>
+<ul>
+<li>然后，我们在同一个文档中创建指向该锚的链接：</li>
+</ul>
+<pre><code>&lt;a href=&quot;#tips&quot;&gt;有用的提示&lt;/a&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>HTML 图像</p>
+<ul>
+<li>定义的语法（img是空标签所以它只包含属性没有闭合标签，src指source，源属性的值是图像的 URL 地址）</li>
+</ul>
+<pre><code>&lt;img src=&quot;url&quot; /&gt;
+</code></pre>
+<ul>
+<li>替换文本属性(alt)</li>
+</ul>
+<pre><code>&lt;img src=&quot;boat.gif&quot; alt=&quot;Big Boat&quot;&gt;
+</code></pre>
+</li>
+<li>
+<p>alt 属性用来为图像定义一串预备的可替换的文本。替换文本属性的值是用户定义的。为页面上的图像都加上替换文本属性是个好习惯，这样有助于更好的显示信息，并且对于那些使用纯文本浏览器的人来说是非常有用的。</p>
+<ul>
+<li>
+<p>提示：假如某个 HTML 文件包含十个图像，那么为了正确显示这个页面，需要加载 11 个文件。加载图片是需要时间的，所以要慎用图片。</p>
+</li>
+<li>
+<p>表格</p>
+<ul>
+<li>表格由 <table> 标签来定义。每个表格均有若干行（由 <tr> 标签定义），每行被分割为若干单元格（由 <td> 标签定义）。字母 td 指表格数据（table data），即数据单元格的内容。数据单元格可以包含文本、图片、列表、段落、表单、水平线、表格等等。 表格是否有边框由border控制，默认为0</li>
+</ul>
+<pre><code>&lt;table border=&quot;1&quot;&gt;
+&lt;tr&gt;
+&lt;td&gt;row 1, cell 1&lt;/td&gt;
+&lt;td&gt;row 1, cell 2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;row 2, cell 1&lt;/td&gt;
+&lt;td&gt;row 2, cell 2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+</code></pre>
+<ul>
+<li>
+<p>显示效果：</p>
+<figure data-type="image" tabindex="7"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20210119213757081.png" alt="image-20210119213757081" loading="lazy"></figure>
+</li>
+<li>
+<p>表格的表头使用 <th> 标签进行定义。</p>
+</li>
+<li>
+<p>在之前的表格第一行下边加上</p>
+<ul>
+<li>
+<pre><code>&lt;th&gt;Heading&lt;/th&gt;
+&lt;th&gt;Another Heading&lt;/th&gt;
+</code></pre>
+</li>
+<li>
+<p>显示效果:</p>
+<p>​		<img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20210119214549855.png" alt="image-20210119214549855" loading="lazy"></p>
+</li>
+</ul>
+</li>
+<li>
+<figure data-type="image" tabindex="8"><img src="C:%5CUsers%5C%E5%AD%9F%E4%B9%90%E8%88%AA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20210119214646003.png" alt="image-20210119214646003" loading="lazy"></figure>
+</li>
+</ul>
+</li>
+<li>
+<p>HTML 列表</p>
+</li>
+</ul>
+</li>
+<li>
+<p>每一个列表项必须在<li></li>中间</p>
+<ul>
+<li>有序列表ol</li>
+</ul>
+<ol>
+ <li>苹果</li>
+ <li>香蕉</li>
+ <li>柠檬</li>
+ <li>桔子</li>
+</ol>  
+<ul>
+<li>
+<p>无序列表ul</p>
+<ul>
+<li>Coffee</li>
+<li>Milk</li>
+  </ul>
+<ul>
+<li>
+<p>嵌套列表（因为现在的无序标题已经是方形了，所以之后的也是方形）</p>
+<ul>
+  <li>咖啡</li>
+  <li>茶
+    <ul>
+    <li>红茶</li>
+    <li>绿茶
+      <ul>
+      <li>中国茶</li>
+      <li>非洲茶</li>
+      </ul>
+    </li>
+    </ul>
+  </li>
+  <li>牛奶</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>HTML <div>元素和<span>元素</p>
+<ul>
+<li>div:该元素没有特定的含义。除此之外，由于它属于块级元素，浏览器会在其前后显示折行。</li>
+<li>span:该元素也没有特定的含义。当与 CSS 一同使用时，<span> 元素可用于为部分文本设置样式属性。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<h1 id="echarts-入门在echarts官网直接修改喜欢的图表">Echarts 入门（在echarts官网直接修改喜欢的图表）</h1>
+<ul>
+<li>
+<p>首先在<head>里边引入Echarts文件</p>
+<ul>
+<li>
+<pre><code>&lt;!-- 引入 ECharts 文件 --&gt;
+&lt;script src=&quot;echarts.min.js&quot;&gt;&lt;/script&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>然后到了<body>里边，先设置一个dom，在基于设置好的dom初始化echarts实例，然后指定图标的配置项和数据</p>
+<ul>
+<li>
+<p>准备dom</p>
+<ul>
+<li>
+<pre><code>&lt;!-- 为 ECharts 准备一个具备大小（宽高）的 DOM --&gt;
+&lt;div id=&quot;main&quot; style=&quot;width: 600px;height:400px;&quot;&gt;&lt;/div&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>初始化echatrs实例</p>
+<ul>
+<li>
+<pre><code>&lt;script type=&quot;text/javascript&quot;&gt;
+    // 基于准备好的dom，初始化echarts实例
+    var myChart = echarts.init(document.getElementById('main'));
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>配置图表的配置项和数据</p>
+<ul>
+<li>
+<pre><code>// 指定图表的配置项和数据
+var option = {
+    title: {
+        text: 'ECharts 入门示例'
+    },
+    tooltip: {},
+    legend: {
+        data:['销量']
+    },
+    xAxis: {
+        data: [&quot;衬衫&quot;,&quot;羊毛衫&quot;,&quot;雪纺衫&quot;,&quot;裤子&quot;,&quot;高跟鞋&quot;,&quot;袜子&quot;]
+    },
+    yAxis: {},
+    series: [{
+        name: '销量',
+        type: 'bar',
+        data: [5, 20, 36, 10, 10, 20]
+    }]
+};
+
+ // 使用刚指定的配置项和数据显示图表。
+        myChart.setOption(option);
+    &lt;/script&gt;
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<h1 id="wordcloud">wordcloud</h1>
+<ul>
+<li>
+<p>要引入wordcloud包，jieba包，numpy包，PIL包等</p>
+<ul>
+<li>
+<pre><code># -*- coding = utf-8 -*-
+# @Time : 2021/1/27 9:26
+# @Author : LeHang
+import jieba        #分词
+from wordcloud import WordCloud         #绘图，数据可视化
+from matplotlib import pyplot as plt     #词云
+from  PIL import  Image                 #图片处理
+import numpy as np                  #矩阵运算
+import  sqlite3             #数据库
+
+
+#准备词云所需的文字(词)
+con = sqlite3.connect('movie.db')
+
+cur = con.cursor()
+
+sql = 'select introduction from movie250'
+
+data = cur.execute(sql)
+
+text = &quot;&quot;
+
+for item in data:
+    text = text + item[0]
+    # print(item[0])
+print(text)
+
+cur.close()
+con.close()
+#分词
+cut = jieba.cut(text)
+string = ' '.join(cut)
+print(string)
+
+
+img = Image.open(r'.\static\assets\img\tree.jpg') #打开遮罩图片，背景必须为白色
+img_array = np.array(img)  #将图片转换为数组
+wc = WordCloud(
+    background_color='white',
+    mask=img_array,
+    font_path='msyh.ttc'
+)
+wc.generate_from_text(string)
+
+#绘制图片
+
+fig = plt.figure(1)
+plt.imshow(wc)
+plt.axis('off') #是否显示坐标轴
+
+# plt.show()      #显示生成的词云图片
+
+#输出词云文件到图片
+plt.savefig(r'.\static\assets\img\word.jpg',dpi=500)
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[面试]]></title>
+        <id>https://a1m67.github.io/post/mian-shi/</id>
+        <link href="https://a1m67.github.io/post/mian-shi/">
+        </link>
+        <updated>2022-02-09T10:07:18.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="tcp与udp的区别">TCP与UDP的区别</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>TCP</th>
+<th>UDP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>是否面向连接</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>是否可靠</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>是否有状态</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>传输效率</td>
+<td>较慢</td>
+<td>较快</td>
+</tr>
+<tr>
+<td>传输形式</td>
+<td>字节流</td>
+<td>数据报文段</td>
+</tr>
+<tr>
+<td>首部开销</td>
+<td>20-60bytes</td>
+<td>8bytes</td>
+</tr>
+<tr>
+<td>是否提供广播多播服务</td>
+<td>否</td>
+<td>是</td>
+</tr>
+</tbody>
+</table>
+<p><strong>UDP：</strong> 一般用于即时通信 如语音视频直播等</p>
+<p>**TCP：**一般用于文件传输、发送和接受邮件、远程登录</p>
+<h2 id="http基于tcp还是udp">HTTP基于TCP还是UDP</h2>
+<p>HTTP3.0之前基于TCP，之后UDP的QUIC协议，为了解决HTTP/2中存在的队头阻塞问题。由于 HTTP/2 在单个 TCP 连接上使用了多路复用，受到 TCP 拥塞控制的影响，少量的丢包就可能导致整个 TCP 连接上的所有流被阻塞。</p>
+<h2 id="使用tcp的协议">使用TCP的协议</h2>
+<p>HTTP：超文本传输协议</p>
+<p>HTTPS：更安全的超文本传输协议</p>
+<p>FTP：文件传输协议</p>
+<p>SMTP：简单邮件传输协议</p>
+<p>SSH：是目前较可靠，专为远程登录会话和其他网络服务提供安全性的协议。</p>
+<h2 id="使用udp的协议">使用UDP的协议</h2>
+<p>DHCP：动态主机配置协议</p>
+<p>DNS：域名系统，将人类可读的域名转换为机器可读的IP地址</p>
+]]></content>
+    </entry>
+</feed>

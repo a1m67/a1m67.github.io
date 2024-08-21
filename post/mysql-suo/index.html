@@ -1,0 +1,315 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MySQL锁 | Gridea</title>
+<link rel="shortcut icon" href="https://a1m67.github.io/favicon.ico?v=1724240269600">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://a1m67.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="MySQL锁 | Gridea - Atom Feed" href="https://a1m67.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="1.	全局锁
+
+flush tables with read lock
+
+
+执行后，整个数据库只读，下方操作都会被阻塞
+
+对数据的增删改操作，比如 insert、delete、update等语句；
+对表结构的更改操作，比如 alter ta..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://a1m67.github.io">
+  <img class="avatar" src="https://a1m67.github.io/images/avatar.png?v=1724240269600" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              MySQL锁
+            </h2>
+            <div class="post-info">
+              <span>
+                2024-08-12
+              </span>
+              <span>
+                7 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content" v-pre>
+                <h1 id="1全局锁"><strong>1.	全局锁</strong></h1>
+<blockquote>
+<pre><code class="language-sql">flush tables with read lock
+</code></pre>
+</blockquote>
+<p>执行后，整个数据库只读，下方操作都会被阻塞</p>
+<ul>
+<li>对数据的增删改操作，比如 insert、delete、update等语句；</li>
+<li>对表结构的更改操作，比如 alter table、drop table 等语句。</li>
+</ul>
+<p>释放全局锁</p>
+<blockquote>
+<pre><code class="language-sql">unlock tables
+</code></pre>
+</blockquote>
+<p>除此之外会话断开也会释放全局锁</p>
+<p>应用场景： <strong>全表逻辑备份</strong></p>
+<p>缺点：1. 全表只读不能更新数据，如果数据量很大非常耗时</p>
+<p>解决方法，如果使用的数据库引擎支持 <strong>可重复读</strong>，可以在备份前开启事务。此时不会影响其他操作的执行并且依然可以进行备份。</p>
+<p>备份数据库的工具是 mysqldump，在使用 mysqldump 时加上 <code>–single-transaction</code> 参数的时候，就会开启事务</p>
+<p>MyISAM只能使用全表锁</p>
+<h1 id="2表级锁">2.表级锁</h1>
+<ul>
+<li>表锁；</li>
+<li>元数据锁（MDL）;</li>
+<li>意向锁；</li>
+<li>AUTO-INC 锁；</li>
+</ul>
+<h2 id="表锁">表锁</h2>
+<p>加锁</p>
+<pre><code class="language-sql">//表级别的共享锁，也就是读锁；
+lock tables t_student read;
+
+//表级别的独占锁，也就是写锁；
+lock tables t_stuent write;
+</code></pre>
+<p>如果加了读锁，<strong>本线程</strong>和<strong>其他线程</strong>的写操作都会被阻塞</p>
+<p>解锁</p>
+<pre><code class="language-sql">unlock tables
+</code></pre>
+<p>会话退出也会断开锁。</p>
+<p><strong>InnoDB</strong>不推荐表级锁，因为支持<strong>行级锁</strong></p>
+<h2 id="元数据锁mdl">元数据锁（MDL）</h2>
+<p>不需要显示加锁，数据库会自动加锁</p>
+<ul>
+<li>进行CRUD时，加的是MDL读锁。</li>
+<li>进行表结构变更时，加的是MDL写锁。</li>
+</ul>
+<p>MDL保证用户CRUD 时，避免被其他线程更改表结构</p>
+<ul>
+<li>在执行select语句（MDL读锁）时，其他线程修改表结构（MDL写锁），会被阻塞，直到执行完select（释放MDL读锁）</li>
+<li>执行修改表结构的期间（MDL写锁），如果其他线程要执行CRUD操作，会被阻塞，直到表结构变更完成（释放MDL写锁）</li>
+</ul>
+<p><strong>MDL锁释放时机</strong>：事务提交才会释放，在事务执行期间始终持有。</p>
+<p>问题：</p>
+<ol>
+<li>A线程是一个长事务，始终不提交，对A进行一个Select操作，此时A持有MDL写锁</li>
+<li>B线程也进行同样的select操作，此时B线程也可以正常读取，因为读读不阻塞</li>
+<li>C线程修改了表字段，要加MDL写锁，由于此时A没有释放写锁，所以C会阻塞</li>
+</ol>
+<p>C阻塞之后，后续对该表的select语句都会被阻塞，如果后续大量select语句到来，会导致大量线程阻塞，数据库的线程很快就会爆满。</p>
+<p>C线程阻塞，后续申请读锁也会被阻塞的原因：申请MDL的操作会形成一个队列，队列中的写锁<strong>优先级高于读锁</strong>。</p>
+<p>因此变更表结构需要先检查是否长事务，如果有并且加上的MDL读锁可以考虑kill掉。</p>
+<h2 id="意向锁">意向锁</h2>
+<p><strong>意向锁的目的是为了快速判断表里是否有记录被加锁（为行锁服务）</strong>。</p>
+<ul>
+<li>在使用 InnoDB 引擎的表里对某些记录加上「共享锁」之前，需要先在表级别加上一个「意向共享锁」；</li>
+<li>在使用 InnoDB 引擎的表里对某些纪录加上「独占锁」之前，需要先在表级别加上一个「意向独占锁」；</li>
+</ul>
+<p>否则如果要加独占表锁，就需要遍历表中的所有记录，查看表中是否存在行级锁。</p>
+<p>意向锁和意向锁不会冲突，也不会和行级锁冲突。</p>
+<p>意向锁只会和**表级共享锁(lock tables table_name read)和表级独占锁(lock tables ... write)**冲突,</p>
+<p><strong>读读不共享，读写、写写互斥</strong></p>
+<h2 id="auto-inc锁">AUTO-INC锁</h2>
+<p>在5.1.22之前 在插入数据时，通过加<strong>表级别的AUTO-INC锁</strong>来给被<code>ATUO-INCRMENT</code>参数修饰的字段赋值，等到<strong>插入操作执行完成释放锁</strong></p>
+<p>在5.1.22之后 InnoDB提供了一种更轻量级的锁实现自增，在插入数据时，给被<code>AUTO_INCREMENT</code>修饰的字段<strong>赋一个自增的值就释放</strong>这个轻量级锁。</p>
+<p>InnoDB提供了<code>innodb-autoinc-lock-mode</code>系统变量控制锁</p>
+<ul>
+<li>
+<p>当 innodb_autoinc_lock_mode = 0，就采用 AUTO-INC 锁，语句执行结束后才释放锁；</p>
+</li>
+<li>
+<p>当 innodb_autoinc_lock_mode = 2，就采用轻量级锁，申请自增主键后就释放锁，并不需要等语句执行后才释放。</p>
+</li>
+<li>
+<p>当 innodb_autoinc_lock_mode = 1：</p>
+<ul>
+<li>普通 insert 语句，自增锁在申请之后就马上释放；</li>
+<li>类似 insert … select 这样的批量插入数据的语句，自增锁还是要等语句结束后才被释放；</li>
+</ul>
+</li>
+</ul>
+<p>当<code>innodb_autoinc_lock_mode</code>=2时，效率最高，但是搭配binlog日志格式是statement进行主从复制的时候会出现数据不一致问题</p>
+<h1 id="todo-学完binlog之后看这里补充一下">todo 学完binlog之后看这里，补充一下。</h1>
+<h1 id="3-行级锁">3. 行级锁</h1>
+<p>普通select是快照读，如果需要查询时加行锁，可以使用下列方式，查询加锁成为 <strong>锁定读</strong></p>
+<pre><code class="language-sql">//对读取的记录加共享锁
+select ... lock in share mode;
+
+//对读取的记录加独占锁
+select ... for update;
+</code></pre>
+<p>上面这两条语句必须在事务中，<strong>因为当事务提交了，锁就会被释放</strong>，所以在使用这两条语句的时候，要加上 <strong>begin、start transaction 或者 set autocommit = 0（三种开启事务的方式）</strong>。</p>
+<p>SS共享，其他的全部互斥</p>
+<figure data-type="image" tabindex="1"><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/mysql/%E9%94%81/x%E9%94%81%E5%92%8Cs%E9%94%81.png" alt="img" loading="lazy"></figure>
+<h2 id="record-lock">Record Lock</h2>
+<p>记录锁，锁住一条记录。分为S锁和X锁</p>
+<ul>
+<li>一个事务对一条记录加了S锁，后续其他事务还能对这条记录加S锁，但是不能加X锁</li>
+<li>一个事务对一条记录加了X锁，后续其他事务不能对这条记录加S锁，也不能加X锁</li>
+</ul>
+<p>当事务commit之后，锁自动释放</p>
+<h2 id="gap-lock">Gap Lock</h2>
+<p>间隙锁，锁一个范围，左开右开区间(3,5)只锁4。</p>
+<p>间隙锁之间兼容，两个事务可以同时持有包含共同间隙范围的间隙锁</p>
+<h2 id="next-key-lock">Next-Key Lock</h2>
+<p>Record Lock + Gap Lock，锁定一个范围 + 记录本身，间隙锁兼容但是还要考虑记录锁的S和X型的关系，所以</p>
+<p><strong>next-key lock 是包含间隙锁+记录锁的，如果一个事务获取了 X 型的 next-key lock，那么另外一个事务在获取相同范围的 X 型的 next-key lock 时，是会被阻塞的</strong>。</p>
+<p><img src="https://a1m67.github.io/post-images/1723473723943.png" alt="image-20240811165109814" loading="lazy">)</p>
+<h2 id="插入意向锁">插入意向锁</h2>
+<p>一个事务在插入一条记录之前，先判断是否有间隙锁，如果有间隙锁，在插入操作时会阻塞，直到拥有间隙锁的事务提交，在此期间生成一个插入意向锁，表示有事务想在某区间插入新纪录，但是现在处于等待状态。</p>
+<p>插入意向锁名字虽然有意向锁，但是它并<strong>不是意向锁，它是一种特殊的间隙锁，属于行级别锁</strong>。</p>
+<p>假设上图有一个（3,5）的间隙锁，A未提交的时候，B向id=4插入一条数据，会判断4已经被A加了间隙锁，于是B会生成一个插入意向锁，并设置为等待状态且事务B阻塞，直到A提交事务。</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#1%E5%85%A8%E5%B1%80%E9%94%81"><strong>1.	全局锁</strong></a></li>
+<li><a href="#2%E8%A1%A8%E7%BA%A7%E9%94%81">2.表级锁</a>
+<ul>
+<li><a href="#%E8%A1%A8%E9%94%81">表锁</a></li>
+<li><a href="#%E5%85%83%E6%95%B0%E6%8D%AE%E9%94%81mdl">元数据锁（MDL）</a></li>
+<li><a href="#%E6%84%8F%E5%90%91%E9%94%81">意向锁</a></li>
+<li><a href="#auto-inc%E9%94%81">AUTO-INC锁</a></li>
+</ul>
+</li>
+<li><a href="#todo-%E5%AD%A6%E5%AE%8Cbinlog%E4%B9%8B%E5%90%8E%E7%9C%8B%E8%BF%99%E9%87%8C%E8%A1%A5%E5%85%85%E4%B8%80%E4%B8%8B">todo 学完binlog之后看这里，补充一下。</a></li>
+<li><a href="#3-%E8%A1%8C%E7%BA%A7%E9%94%81">3. 行级锁</a>
+<ul>
+<li><a href="#record-lock">Record Lock</a></li>
+<li><a href="#gap-lock">Gap Lock</a></li>
+<li><a href="#next-key-lock">Next-Key Lock</a></li>
+<li><a href="#%E6%8F%92%E5%85%A5%E6%84%8F%E5%90%91%E9%94%81">插入意向锁</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://a1m67.github.io/post/mysql-shi-wu/">
+              <h3 class="post-title">
+                MySQL事务
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://a1m67.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>
